@@ -71,6 +71,22 @@ textarea {
   color: #ffffff;
 }
 
+.brand-logo,
+.sales-brand img,
+.planner-logo {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.planner-logo {
+  width: 48px;
+  height: 48px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+}
+
 .nav {
   display: flex;
   align-items: center;
@@ -393,7 +409,7 @@ textarea {
   width: 48px;
   height: 48px;
   border-radius: 8px;
-  background: #a7282f;
+  background: var(--brand);
   color: #ffffff;
   font-weight: 900;
 }
@@ -516,12 +532,12 @@ textarea {
 }
 
 .primary-button {
-  background: #a7282f;
+  background: var(--brand);
   color: #ffffff;
 }
 
 .primary-button:hover {
-  background: #701a21;
+  background: var(--brand-dark);
 }
 
 .primary-button:disabled {
@@ -890,7 +906,7 @@ textarea {
   gap: 16px;
   border: 1px solid var(--line);
   border-radius: 16px;
-  background: #211719;
+  background: #12231f;
   color: #ffffff;
   min-height: 560px;
   padding: 30px;
@@ -898,8 +914,8 @@ textarea {
 }
 
 .pricing-card.featured {
-  border-color: #ff5870;
-  background: #46121c;
+  border-color: #54d69a;
+  background: #11362f;
 }
 
 .pricing-badge {
@@ -908,8 +924,8 @@ textarea {
   left: 50%;
   transform: translateX(-50%);
   border-radius: 999px;
-  background: #ff5870;
-  color: #15080b;
+  background: #54d69a;
+  color: #06241f;
   padding: 8px 18px;
   white-space: nowrap;
   font-size: 0.86rem;
@@ -959,9 +975,9 @@ textarea {
   justify-content: center;
   width: 28px;
   height: 28px;
-  border: 2px solid #ff5870;
+  border: 2px solid #54d69a;
   border-radius: 999px;
-  color: #ff5870;
+  color: #54d69a;
   font-size: 0.68rem;
   font-weight: 950;
 }
@@ -1115,17 +1131,6 @@ textarea {
 .sales-brand {
   gap: 10px;
   font-size: 1.05rem;
-}
-
-.sales-brand span {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 9px;
-  background: #176b5f;
-  color: #ffffff;
-  font-weight: 900;
 }
 
 .sales-nav nav {
@@ -1314,7 +1319,7 @@ textarea {
 .mock-top button {
   border: 0;
   border-radius: 7px;
-  background: #b32634;
+  background: #176b5f;
   color: #ffffff;
   padding: 11px 14px;
   font-weight: 900;
@@ -1485,7 +1490,7 @@ textarea {
 
 .check-list svg,
 .landing-price-card li svg {
-  color: #ff5870;
+  color: #54d69a;
   flex: 0 0 auto;
 }
 
@@ -1552,7 +1557,7 @@ textarea {
 
 .pricing-section {
   max-width: none;
-  background: #16090d;
+  background: #071a17;
   color: #ffffff;
 }
 
@@ -1581,13 +1586,13 @@ textarea {
   min-height: 560px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 18px;
-  background: #211719;
+  background: #12231f;
   padding: 30px;
 }
 
 .landing-price-card.featured {
-  border-color: #ff5870;
-  background: #46121c;
+  border-color: #54d69a;
+  background: #11362f;
 }
 
 .landing-price-badge {
@@ -1596,8 +1601,8 @@ textarea {
   left: 50%;
   transform: translateX(-50%);
   border-radius: 999px;
-  background: #ff5870;
-  color: #18080c;
+  background: #54d69a;
+  color: #06241f;
   padding: 8px 18px;
   white-space: nowrap;
   font-weight: 950;

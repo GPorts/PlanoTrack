@@ -58,13 +58,13 @@ type StoredPlan = {
   }>;
 };
 
-const colors = ["#c92a2a", "#2563eb", "#149b7e", "#7c3aed", "#d97706", "#0891b2", "#b91c1c", "#4f46e5", "#15803d", "#0f766e"];
-const calendarColors = ["#176b5f", "#2458a6", "#9a3412", "#6d3fb6", "#0f766e", "#b4232a", "#2f6f43"];
+const colors = ["#176b5f", "#2563eb", "#149b7e", "#0f766e", "#d97706", "#0891b2", "#2f6f43", "#4f46e5", "#15803d", "#64748b"];
+const calendarColors = ["#176b5f", "#2458a6", "#0f766e", "#6d3fb6", "#2f6f43", "#0e7490", "#8a5a12"];
 const initialSubjects: Subject[] = [];
 const initialSchedule: ScheduleItem[] = [];
 const initialGoals: Goal[] = [];
 
-export function PlanoTrackApp({ userId }: { userId: string }) {
+export function PlanoTrackerApp({ userId }: { userId: string }) {
   const [view, setView] = useState<View>("dashboard");
   const [subjects, setSubjects] = useState(initialSubjects);
   const [goals, setGoals] = useState(initialGoals);
@@ -103,7 +103,7 @@ export function PlanoTrackApp({ userId }: { userId: string }) {
       if (!active) return;
 
       if (error) {
-        setStorageMessage("Nao foi possivel carregar seu ultimo plano salvo.");
+        setStorageMessage("Não foi possível carregar seu último plano salvo.");
         setIsLoadingPlan(false);
         return;
       }
@@ -139,10 +139,10 @@ export function PlanoTrackApp({ userId }: { userId: string }) {
   const viewTitle = {
     dashboard: "Painel",
     create: "Criar plano",
-    calendar: "Calendario",
+    calendar: "Calendário",
     goals: "Metas",
     subjects: "Disciplinas",
-    sessions: "Sessoes"
+    sessions: "Sessões"
   }[view];
   const totalGoals = goals.length || 1;
   const progressPercent = Math.round((stats.doneGoals / totalGoals) * 100);
@@ -175,7 +175,7 @@ export function PlanoTrackApp({ userId }: { userId: string }) {
   function importGeneratedPlan(plan: GeneratedPlan) {
     applyGeneratedPlan(plan);
     saveGeneratedPlan(plan).catch(() => {
-      setStorageMessage("Plano criado, mas nao foi possivel salvar no Supabase.");
+      setStorageMessage("Plano criado, mas não foi possível salvar no Supabase.");
     });
   }
 
@@ -237,7 +237,7 @@ export function PlanoTrackApp({ userId }: { userId: string }) {
       .select("id")
       .single();
 
-    if (planError || !savedPlan) throw planError || new Error("Plano nao salvo.");
+    if (planError || !savedPlan) throw planError || new Error("Plano não salvo.");
 
     const planId = savedPlan.id as string;
     const subjectIdByName = new Map<string, string>();
@@ -254,7 +254,7 @@ export function PlanoTrackApp({ userId }: { userId: string }) {
         .select("id")
         .single();
 
-      if (subjectError || !savedSubject) throw subjectError || new Error("Disciplina nao salva.");
+      if (subjectError || !savedSubject) throw subjectError || new Error("Disciplina não salva.");
 
       const subjectId = savedSubject.id as string;
       subjectIdByName.set(subject.name, subjectId);
@@ -325,20 +325,20 @@ export function PlanoTrackApp({ userId }: { userId: string }) {
     <div className="planner-shell">
       <aside className="planner-sidebar">
         <div className="planner-brand">
-          <div className="planner-mark">PT</div>
+          <img className="planner-logo" src="/plano-tracker.png" alt="" aria-hidden="true" />
           <div>
-            <strong>PlanoTrack</strong>
+            <strong>PlanoTracker</strong>
             <span>Estudo organizado</span>
           </div>
         </div>
 
-        <nav className="planner-nav" aria-label="Navegacao principal">
+        <nav className="planner-nav" aria-label="Navegação principal">
           <NavButton active={view === "dashboard"} icon={<LayoutDashboard size={18} />} label="Painel" onClick={() => setView("dashboard")} />
           <NavButton active={view === "create"} icon={<Sparkles size={18} />} label="Criar plano" onClick={() => setView("create")} />
-          <NavButton active={view === "calendar"} icon={<CalendarDays size={18} />} label="Calendario" onClick={() => setView("calendar")} />
+          <NavButton active={view === "calendar"} icon={<CalendarDays size={18} />} label="Calendário" onClick={() => setView("calendar")} />
           <NavButton active={view === "goals"} icon={<ListChecks size={18} />} label="Metas" onClick={() => setView("goals")} />
           <NavButton active={view === "subjects"} icon={<ClipboardList size={18} />} label="Disciplinas" onClick={() => setView("subjects")} />
-          <NavButton active={view === "sessions"} icon={<Plus size={18} />} label="Sessoes" onClick={() => setView("sessions")} />
+          <NavButton active={view === "sessions"} icon={<Plus size={18} />} label="Sessões" onClick={() => setView("sessions")} />
         </nav>
 
         <div className="sidebar-block">
@@ -346,7 +346,7 @@ export function PlanoTrackApp({ userId }: { userId: string }) {
           <div className="progress-track">
             <div className="progress-fill" style={{ width: `${progressPercent}%` }} />
           </div>
-          <div className="small-muted">{progressPercent}% concluido</div>
+          <div className="small-muted">{progressPercent}% concluído</div>
         </div>
       </aside>
 
@@ -359,7 +359,7 @@ export function PlanoTrackApp({ userId }: { userId: string }) {
           </div>
           <div className="top-actions">
             <button className="primary-button" type="button" onClick={() => setView("sessions")}>
-              Nova sessao
+              Nova sessão
             </button>
           </div>
         </header>
@@ -443,21 +443,21 @@ function Dashboard({
 }) {
   return (
     <>
-      {isLoadingPlan ? <div className="notice plan-source-notice">Carregando seu ultimo plano salvo...</div> : null}
+      {isLoadingPlan ? <div className="notice plan-source-notice">Carregando seu último plano salvo...</div> : null}
       {storageMessage ? <div className="notice plan-source-notice">{storageMessage}</div> : null}
       {lastPlanSource ? (
         <div className={`notice plan-source-notice ${lastPlanSource === "openai" ? "success-notice" : ""}`}>
           {lastPlanSource === "openai"
-            ? "Ultimo plano criado com IA real."
-            : "Ultimo plano criado em modo demonstracao. Confira OPENAI_API_KEY e ENABLE_MOCK_AI na Vercel."}
+            ? "Último plano criado com IA real."
+            : "Último plano criado em modo demonstração. Confira OPENAI_API_KEY e ENABLE_MOCK_AI na Vercel."}
         </div>
       ) : null}
 
       <div className="stats-grid">
         <Stat label="Horas estudadas" value={formatMinutes(stats.minutes)} />
-        <Stat label="Questoes feitas" value={String(stats.questions)} />
+        <Stat label="Questões feitas" value={String(stats.questions)} />
         <Stat label="Taxa de acerto" value={`${stats.accuracy}%`} />
-        <Stat label="Metas concluidas" value={`${stats.doneGoals}/${goals.length}`} />
+        <Stat label="Metas concluídas" value={`${stats.doneGoals}/${goals.length}`} />
       </div>
 
       <div className="content-grid">
@@ -465,7 +465,7 @@ function Dashboard({
           <div className="panel-header">
             <h2>Foco de hoje</h2>
             <button className="text-button" type="button" onClick={() => setView("calendar")}>
-              Ver calendario
+              Ver calendário
             </button>
           </div>
           <div className="stack-list">
@@ -475,7 +475,7 @@ function Dashboard({
 
         <section className="panel">
           <div className="panel-header">
-            <h2>Desempenho por materia</h2>
+            <h2>Desempenho por matéria</h2>
             <button className="text-button" type="button" onClick={() => setView("subjects")}>
               Editar
             </button>
@@ -499,7 +499,7 @@ function CreatePlan({ onPlanGenerated }: { onPlanGenerated: (plan: GeneratedPlan
     setError("");
 
     const form = new FormData(event.currentTarget);
-    const days = ["Segunda-feira", "Terca-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sabado", "Domingo"].filter(
+    const days = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"].filter(
       (day) => form.get(day) === "on"
     );
 
@@ -514,7 +514,7 @@ function CreatePlan({ onPlanGenerated }: { onPlanGenerated: (plan: GeneratedPlan
     setLoading(false);
 
     if (!response.ok) {
-      setError(data.error || "Nao foi possivel criar o plano.");
+      setError(data.error || "Não foi possível criar o plano.");
       return;
     }
 
@@ -555,7 +555,7 @@ function CreatePlan({ onPlanGenerated }: { onPlanGenerated: (plan: GeneratedPlan
 
         <fieldset className="day-picker">
           <legend>Dias de estudo</legend>
-          {["Segunda-feira", "Terca-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sabado", "Domingo"].map((day) => (
+          {["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"].map((day) => (
             <label key={day}>
               <input name={day} type="checkbox" defaultChecked />
               {day.replace("-feira", "")}
@@ -565,14 +565,14 @@ function CreatePlan({ onPlanGenerated }: { onPlanGenerated: (plan: GeneratedPlan
 
         <label>
           Rotina desejada
-          <input name="preferredBlocks" defaultValue="Ex: manha e tarde para teoria; noite para questoes e revisao." />
+          <input name="preferredBlocks" defaultValue="Ex: manhã e tarde para teoria; noite para questões e revisão." />
         </label>
         <label>
           Edital
-          <textarea name="editalText" placeholder="Cole aqui o conteudo programatico do edital ou anexe o PDF acima..." />
+          <textarea name="editalText" placeholder="Cole aqui o conteúdo programático do edital ou anexe o PDF acima..." />
         </label>
 
-        <div className="notice">O PlanoTrack usa IA para ler o edital e monta o calendario completo ate a data da prova.</div>
+        <div className="notice">O PlanoTracker usa IA para ler o edital e monta o calendário completo até a data da prova.</div>
         {error ? <div className="notice">{error}</div> : null}
 
         <button className="primary-button" type="submit" disabled={loading}>
@@ -593,7 +593,7 @@ function Calendar({ schedule }: { schedule: ScheduleItem[] }) {
   );
 
   if (!days.length) {
-    return <EmptyPanel title="Calendario vazio" text="Gere um plano com IA para montar os dias de estudo ate a prova." />;
+    return <EmptyPanel title="Calendário vazio" text="Gere um plano com IA para montar os dias de estudo até a prova." />;
   }
 
   return <div className="calendar-grid">{days.map((day, index) => <DayCard key={day[0].date} day={day} color={calendarColors[index % calendarColors.length]} />)}</div>;
@@ -621,7 +621,7 @@ function Goals({
         <div className="panel-header">
           <div>
             <h2>Quadro de metas</h2>
-            <p className="muted">Acompanhe entregas, revisoes e simulados.</p>
+            <p className="muted">Acompanhe entregas, revisões e simulados.</p>
           </div>
           <button className="primary-button" type="button" onClick={() => openGoalModal()}>
             Nova meta
@@ -635,7 +635,7 @@ function Goals({
                 <div className="mini-meta">{goal.subject} | Prazo {formatDate(goal.due)}</div>
               </div>
               <div className="item-actions">
-                <span className={`status-pill ${goal.done ? "done" : ""}`}>{goal.done ? "Concluida" : "Pendente"}</span>
+                <span className={`status-pill ${goal.done ? "done" : ""}`}>{goal.done ? "Concluída" : "Pendente"}</span>
                 <button
                   className="icon-button"
                   type="button"
@@ -652,7 +652,7 @@ function Goals({
                 </button>
               </div>
             </article>
-          )) : <EmptyState text="As metas serao criadas automaticamente a partir dos subtopicos do edital." />}
+          )) : <EmptyState text="As metas serão criadas automaticamente a partir dos subtópicos do edital." />}
         </div>
       </section>
 
@@ -661,7 +661,7 @@ function Goals({
           title="Excluir meta"
           message={`Tem certeza que quer excluir "${goalToDelete.title}"?`}
           confirmLabel="Sim"
-          cancelLabel="Nao"
+          cancelLabel="Não"
           onCancel={() => setGoalToDelete(null)}
           onConfirm={() => deleteGoal(goalToDelete)}
         />
@@ -692,7 +692,7 @@ function Subjects({
         <div className="panel-header">
           <div>
             <h2>Disciplinas</h2>
-            <p className="muted">Defina peso, cor e progresso manual de cada materia.</p>
+            <p className="muted">Defina peso, cor e progresso manual de cada matéria.</p>
           </div>
           <button className="primary-button" type="button" onClick={() => openSubjectModal()}>
             Nova disciplina
@@ -716,13 +716,13 @@ function Subjects({
                 </div>
               </div>
               <div className="mini-meta">
-                {subject.questions || 0} questoes | peso {formatWeight(subject)} | {subject.weight || 0} pontos
+                {subject.questions || 0} questões | peso {formatWeight(subject)} | {subject.weight || 0} pontos
               </div>
               <div className="progress-track">
                 <div className="progress-fill" style={{ width: `${subject.progress}%`, background: subject.color }} />
               </div>
               <details className="topic-details">
-                <summary>{subject.topics.length} subtopicos</summary>
+                <summary>{subject.topics.length} subtópicos</summary>
                 <ol>{subject.topics.map((topic) => <li key={topic}>{topic}</li>)}</ol>
               </details>
             </article>
@@ -735,7 +735,7 @@ function Subjects({
           title="Excluir disciplina"
           message={`Tem certeza que quer excluir "${subjectToDelete.name}"?`}
           confirmLabel="Sim"
-          cancelLabel="Nao"
+          cancelLabel="Não"
           onCancel={() => setSubjectToDelete(null)}
           onConfirm={() => deleteSubject(subjectToDelete)}
         />
@@ -800,7 +800,7 @@ function Sessions({ subjects, sessions, setSessions }: { subjects: Subject[]; se
     <div className="content-grid">
       <section className="panel">
         <div className="panel-header">
-          <h2>Registrar sessao</h2>
+          <h2>Registrar sessão</h2>
         </div>
         <form className="create-form" onSubmit={submit}>
           <div className="form-row">
@@ -819,7 +819,7 @@ function Sessions({ subjects, sessions, setSessions }: { subjects: Subject[]; se
               <input name="minutes" type="number" min="1" defaultValue="60" required />
             </label>
             <label>
-              Questoes
+              Questões
               <input name="questions" type="number" min="0" defaultValue="0" required />
             </label>
           </div>
@@ -828,16 +828,16 @@ function Sessions({ subjects, sessions, setSessions }: { subjects: Subject[]; se
             <input name="correct" type="number" min="0" defaultValue="0" required />
           </label>
           <label>
-            Observacoes
+            Observações
             <textarea name="notes" />
           </label>
-          <button className="primary-button" type="submit">Salvar sessao</button>
+          <button className="primary-button" type="submit">Salvar sessão</button>
         </form>
       </section>
       <section className="panel">
-        <h2>Historico</h2>
+        <h2>Histórico</h2>
         <div className="stack-list">
-          {sessions.length ? sessions.map((session) => <div className="session-item" key={session.id}><strong>{session.subject}</strong><span>{formatMinutes(session.minutes)} | {session.questions} questoes</span></div>) : <EmptyState text="Nenhuma sessao registrada ainda." />}
+          {sessions.length ? sessions.map((session) => <div className="session-item" key={session.id}><strong>{session.subject}</strong><span>{formatMinutes(session.minutes)} | {session.questions} questões</span></div>) : <EmptyState text="Nenhuma sessão registrada ainda." />}
         </div>
       </section>
     </div>
@@ -872,7 +872,7 @@ function GoalModal({
       <form className="modal-card" onSubmit={submit}>
         <h2>{goal ? "Editar meta" : "Nova meta"}</h2>
         <label>
-          Titulo
+          Título
           <input name="title" defaultValue={goal?.title || ""} required autoFocus />
         </label>
         <label>
@@ -891,7 +891,7 @@ function GoalModal({
         </label>
         <label className="checkbox-row">
           <input name="done" type="checkbox" defaultChecked={Boolean(goal?.done)} />
-          Meta concluida
+          Meta concluída
         </label>
         <div className="modal-actions">
           <button className="ghost-button" type="button" onClick={onClose}>
@@ -934,7 +934,7 @@ function SubjectModal({
       weight: questions * questionWeight,
       progress: Number(form.get("progress") || 0),
       color: String(form.get("color") || fallbackColor),
-      topics: topics.length ? topics : ["Revisao geral"]
+      topics: topics.length ? topics : ["Revisão geral"]
     });
   }
 
@@ -948,15 +948,15 @@ function SubjectModal({
         </label>
         <div className="form-row">
           <label>
-            Numero de questoes
+            Número de questões
             <input name="questions" type="number" min="0" defaultValue={subject?.questions || 5} required />
           </label>
           <label>
-            Peso por questao
+            Peso por questão
             <input name="questionWeight" type="number" min="0" step="0.1" defaultValue={formatWeight(subject || { questions: 5, weight: 10, name: "", topics: [], color: fallbackColor, progress: 0 })} required />
           </label>
         </div>
-        <div className="notice compact-notice">O total de pontos e calculado automaticamente: numero de questoes x peso por questao.</div>
+        <div className="notice compact-notice">O total de pontos é calculado automaticamente: número de questões x peso por questão.</div>
         <label>
           Progresso (%)
           <input name="progress" type="number" min="0" max="100" defaultValue={subject?.progress || 0} required />
@@ -966,8 +966,8 @@ function SubjectModal({
           <input name="color" type="color" defaultValue={subject?.color || fallbackColor} required />
         </label>
         <label>
-          Subtopicos
-          <textarea name="topics" defaultValue={(subject?.topics || ["Revisao geral"]).join("\n")} />
+          Subtópicos
+          <textarea name="topics" defaultValue={(subject?.topics || ["Revisão geral"]).join("\n")} />
         </label>
         <div className="modal-actions">
           <button className="ghost-button" type="button" onClick={onClose}>
@@ -990,10 +990,10 @@ function StudySlot({ slot }: { slot: ScheduleItem }) {
   return (
     <article className="session-item">
       <div>
-        <strong>{slot.period} - {slot.subject}</strong>
+        <strong>{displayPeriod(slot.period)} - {slot.subject}</strong>
         <span>{formatHours(slot.minutes)} | {slot.topic}</span>
       </div>
-      <span className="status-pill">{slot.kind === "questoes" ? "Questoes" : "Teoria"}</span>
+      <span className="status-pill">{displayKind(slot.kind)}</span>
     </article>
   );
 }
@@ -1012,7 +1012,7 @@ function SubjectRow({ subject, sessions }: { subject: Subject; sessions: Session
           <span className="dot" style={{ background: subject.color }} />
           <span>{subject.name}</span>
         </div>
-        <div className="mini-meta">{formatMinutes(minutes)} | {questions} questoes | {accuracy}% acerto</div>
+        <div className="mini-meta">{formatMinutes(minutes)} | {questions} questões | {accuracy}% acerto</div>
       </div>
       <strong>{subject.progress}%</strong>
     </div>
@@ -1024,13 +1024,13 @@ function DayCard({ day, color }: { day: ScheduleItem[]; color: string }) {
     <article className="calendar-card day-plan">
       <div className="calendar-head" style={{ background: color }}>
         <strong>{formatDate(day[0].date)}</strong>
-        <span>{day[0].weekday}</span>
+        <span>{displayWeekday(day[0].weekday)}</span>
       </div>
       <div className="calendar-body">
         {day.map((slot) => (
           <div className="study-slot" key={`${slot.date}-${slot.period}`}>
-            <div className="slot-time">{slot.period}<span>{formatHours(slot.minutes)}</span></div>
-            <div><strong>{slot.subject}</strong><p>{slot.topic}</p><span className="mini-meta">{slot.kind}</span></div>
+            <div className="slot-time">{displayPeriod(slot.period)}<span>{formatHours(slot.minutes)}</span></div>
+            <div><strong>{slot.subject}</strong><p>{slot.topic}</p><span className="mini-meta">{displayKind(slot.kind)}</span></div>
           </div>
         ))}
       </div>
@@ -1072,12 +1072,24 @@ function formatDate(value: string) {
 function weekdayFromIso(value: string) {
   const [year, month, day] = value.split("-").map(Number);
   const date = new Date(year, month - 1, day);
-  const names = ["Domingo", "Segunda-feira", "Terca-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sabado"];
+  const names = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
   return names[date.getDay()] || "";
 }
 
 function periodOrder(period: ScheduleItem["period"]) {
   return { Manha: 1, Tarde: 2, Noite: 3 }[period] || 9;
+}
+
+function displayPeriod(period: ScheduleItem["period"]) {
+  return { Manha: "Manhã", Tarde: "Tarde", Noite: "Noite" }[period] || period;
+}
+
+function displayKind(kind: ScheduleItem["kind"]) {
+  return { teoria: "Teoria", questoes: "Questões", revisao: "Revisão" }[kind] || kind;
+}
+
+function displayWeekday(weekday: string) {
+  return weekday.replace("Terca-feira", "Terça-feira").replace("Sabado", "Sábado");
 }
 
 function formatWeight(subject: Subject) {

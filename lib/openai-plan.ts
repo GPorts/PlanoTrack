@@ -32,10 +32,10 @@ export async function generatePlanWithAi(input: StudyPlanRequest): Promise<Gener
       text: JSON.stringify({
         instructions: [
           "Extraia do edital as disciplinas principais.",
-          "Para cada disciplina, extraia todos os topicos e subtopicos cobrados.",
-          "Quando houver tabela de numero de questoes, peso ou pontos, preencha questions e weight como o total de pontos da disciplina.",
-          "Nao crie cronograma. O sistema vai distribuir os estudos ate a data da prova.",
-          "Nao invente topicos se o edital estiver anexado ou colado; normalize nomes e remova duplicidades."
+          "Para cada disciplina, extraia todos os tópicos e subtópicos cobrados.",
+          "Quando houver tabela de número de questões, peso ou pontos, preencha questions e weight como o total de pontos da disciplina.",
+          "Não crie cronograma. O sistema vai distribuir os estudos até a data da prova.",
+          "Não invente tópicos se o edital estiver anexado ou colado; normalize nomes e remova duplicidades."
         ],
         routine: input.routine,
         editalText: input.editalText || ""
@@ -57,7 +57,7 @@ export async function generatePlanWithAi(input: StudyPlanRequest): Promise<Gener
       {
         role: "developer",
         content:
-          "Voce e um planejador de estudos para concursos, vestibulares e provas. Responda apenas JSON valido no formato solicitado. Seja fiel ao edital e organize disciplinas, pesos e subtopicos."
+          "Você é um planejador de estudos para concursos, vestibulares e provas. Responda apenas JSON válido no formato solicitado. Seja fiel ao edital e organize disciplinas, pesos e subtópicos."
       },
       {
         role: "user",

@@ -53,7 +53,7 @@ export function getCheckoutUrl(userId?: string) {
 
   const url = new URL(baseUrl);
   if (userId) url.searchParams.set("user_id", userId);
-  url.searchParams.set("source", "planotrack");
+  url.searchParams.set("source", "planotracker");
   return url.toString();
 }
 
@@ -135,3 +135,4 @@ function safeCompare(expected: string, received: string) {
   if (expectedBuffer.length !== receivedBuffer.length) return false;
   return crypto.timingSafeEqual(expectedBuffer, receivedBuffer);
 }
+

@@ -47,3 +47,4 @@ export async function userHasActiveSubscription(userId: string) {
   if (error) throw error;
   return Boolean(data?.length);
 }
+

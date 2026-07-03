@@ -22,7 +22,7 @@ export function LoginForm() {
     const supabase = createBrowserSupabaseClient();
     if (!supabase) {
       setLoading(false);
-      setMessage("Supabase ainda nao esta configurado.");
+      setMessage("Supabase ainda não está configurado.");
       return;
     }
 
@@ -65,7 +65,7 @@ export function LoginForm() {
 
       <label className="field">
         E-mail
-        <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="voce@email.com" required />
+        <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="você@email.com" required />
       </label>
       <label className="field">
         Senha

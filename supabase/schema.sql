@@ -1,4 +1,4 @@
--- PlanoTrack MVP schema
+-- PlanoTracker MVP schema
 -- Run this in the Supabase SQL editor after creating the project.
 
 create extension if not exists "pgcrypto";

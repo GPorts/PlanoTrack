@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   try {
     payload = JSON.parse(rawBody);
   } catch {
-    return NextResponse.json({ error: "JSON invalido." }, { status: 400 });
+    return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
   }
 
   if (!verifyCaktoSignature(rawBody, signature, payload.secret)) {

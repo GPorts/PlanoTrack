@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { PlanoTrackApp } from "../plano-track-app";
+import { PlanoTrackerApp } from "../plano-track-app";
 import { createBrowserSupabaseClient } from "@/lib/supabase";
 
 type AccessState = "loading" | "allowed" | "signed-out" | "blocked" | "error";
@@ -69,7 +69,7 @@ export function AppGate() {
     };
   }, [router]);
 
-  if (state === "allowed") return <PlanoTrackApp userId={userId} />;
+  if (state === "allowed") return <PlanoTrackerApp userId={userId} />;
 
   return (
     <main className="page">
@@ -84,8 +84,8 @@ export function AppGate() {
 
         {state === "signed-out" ? (
           <>
-            <p className="eyebrow">Acesso necessario</p>
-            <h1>Entre para acessar o PlanoTrack</h1>
+            <p className="eyebrow">Acesso necessário</p>
+            <h1>Entre para acessar o PlanoTracker</h1>
             <p className="muted">Use o mesmo e-mail informado na compra.</p>
             <Link className="button" href="/login">
               Entrar
@@ -95,10 +95,10 @@ export function AppGate() {
 
         {state === "blocked" ? (
           <>
-            <p className="eyebrow">Assinatura nao encontrada</p>
-            <h1>Seu acesso ainda nao foi liberado</h1>
+            <p className="eyebrow">Assinatura não encontrada</p>
+            <h1>Seu acesso ainda não foi liberado</h1>
             <p className="muted">
-              Nao encontramos uma assinatura ativa para {email || "este e-mail"}. Se voce acabou de comprar, confirme se
+              Não encontramos uma assinatura ativa para {email || "este e-mail"}. Se você acabou de comprar, confirme se
               criou a conta com o mesmo e-mail usado no checkout.
             </p>
             <Link className="button" href="/#pricing">
@@ -109,9 +109,9 @@ export function AppGate() {
 
         {state === "error" ? (
           <>
-            <p className="eyebrow">Erro de configuracao</p>
-            <h1>Nao foi possivel validar o acesso</h1>
-            <p className="muted">Confira as variaveis do Supabase na Vercel e tente novamente.</p>
+            <p className="eyebrow">Erro de configuração</p>
+            <h1>Não foi possível validar o acesso</h1>
+            <p className="muted">Confira as variáveis do Supabase na Vercel e tente novamente.</p>
           </>
         ) : null}
       </section>

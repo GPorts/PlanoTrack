@@ -26,41 +26,41 @@ const features = [
   {
     icon: <Upload size={22} />,
     title: "Edital vira plano",
-    text: "Cole o edital e a IA separa disciplinas, topicos, pesos e ordem de estudo."
+    text: "Cole o edital e a IA separa disciplinas, tópicos, pesos e ordem de estudo."
   },
   {
     icon: <CalendarDays size={22} />,
-    title: "Cronograma diario",
-    text: "Rotina flexivel por data, com teoria, revisao, questoes ou os blocos que fizerem sentido."
+    title: "Cronograma diário",
+    text: "Rotina flexível por data, com teoria, revisão, questões ou os blocos que fizerem sentido."
   },
   {
     icon: <Target size={22} />,
-    title: "Metas por topico",
-    text: "Cada subtitulo do edital vira uma meta clara para marcar como feita."
+    title: "Metas por tópico",
+    text: "Cada subtítulo do edital vira uma meta clara para marcar como feita."
   },
   {
     icon: <Gauge size={22} />,
-    title: "Peso das materias",
+    title: "Peso das matérias",
     text: "Priorize o que mais cai e acompanhe progresso por disciplina."
   },
   {
     icon: <ListChecks size={22} />,
-    title: "Questoes e sessoes",
-    text: "Registre tempo estudado, quantidade de questoes e taxa de acerto."
+    title: "Questões e sessões",
+    text: "Registre tempo estudado, quantidade de questões e taxa de acerto."
   },
   {
     icon: <Sparkles size={22} />,
     title: "Replanejamento simples",
-    text: "Ajuste disciplinas, metas e sessoes quando a rotina mudar."
+    text: "Ajuste disciplinas, metas e sessões quando a rotina mudar."
   }
 ];
 
 const planFeatures = [
   "Planos de estudo ilimitados com IA",
   "Dashboard web completo",
-  "Calendario, metas e disciplinas",
-  "Organizacao por peso do edital",
-  "Registro de sessoes e questoes",
+  "Calendário, metas e disciplinas",
+  "Organização por peso do edital",
+  "Registro de sessões e questões",
   "Suporte por e-mail"
 ];
 
@@ -68,8 +68,8 @@ const pricingPlans = [
   {
     name: "Mensal",
     price: "R$ 29,90",
-    suffix: "/mes",
-    description: "Cobranca mensal recorrente",
+    suffix: "/mês",
+    description: "Cobrança mensal recorrente",
     href: checkoutLinks.monthly,
     cta: "Assinar mensal"
   },
@@ -77,7 +77,7 @@ const pricingPlans = [
     name: "Anual",
     price: "R$ 249,90",
     suffix: "/ano",
-    description: "Equivale a R$ 20,82/mes",
+    description: "Equivale a R$ 20,82/mês",
     href: checkoutLinks.annual,
     cta: "Assinar anual",
     featured: true,
@@ -87,7 +87,7 @@ const pricingPlans = [
     name: "Trimestral",
     price: "R$ 79,90",
     suffix: "/trim",
-    description: "Equivale a R$ 26,63/mes",
+    description: "Equivale a R$ 26,63/mês",
     href: checkoutLinks.quarterly,
     cta: "Assinar trimestral"
   }
@@ -96,19 +96,19 @@ const pricingPlans = [
 const faqs = [
   {
     question: "Serve apenas para concurso?",
-    answer: "Nao. Concurso e o primeiro foco, mas o PlanoTrack tambem funciona para vestibular, OAB, residencia, ENEM e qualquer prova com edital ou lista de conteudos."
+    answer: "Não. Concurso é o primeiro foco, mas o PlanoTracker também funciona para vestibular, OAB, residência, ENEM e qualquer prova com edital ou lista de conteúdos."
   },
   {
-    question: "Qual a diferenca entre os planos?",
-    answer: "Nenhuma diferenca de recurso. Todos liberam o sistema completo. A diferenca e apenas o preco mensal equivalente."
+    question: "Qual a diferença entre os planos?",
+    answer: "Nenhuma diferença de recurso. Todos liberam o sistema completo. A diferença é apenas o preço mensal equivalente."
   },
   {
     question: "Posso editar o plano depois?",
-    answer: "Sim. Depois que a IA cria o plano, voce pode alterar disciplinas, metas, prazos, sessoes e progresso manualmente."
+    answer: "Sim. Depois que a IA cria o plano, você pode alterar disciplinas, metas, prazos, sessões e progresso manualmente."
   },
   {
-    question: "O pagamento e seguro?",
-    answer: "Sim. A compra e processada pela Cakto. Depois do pagamento aprovado, o acesso ao PlanoTrack e liberado para usar o sistema."
+    question: "O pagamento é seguro?",
+    answer: "Sim. A compra é processada pela Cakto. Depois do pagamento aprovado, o acesso ao PlanoTracker é liberado para usar o sistema."
   }
 ];
 
@@ -117,10 +117,10 @@ export default function HomePage() {
     <main className="sales-page">
       <header className="sales-nav">
         <Link className="sales-brand" href="/">
-          <span>PT</span>
-          <strong>PlanoTrack</strong>
+          <img src="/plano-tracker.png" alt="" aria-hidden="true" />
+          <strong>PlanoTracker</strong>
         </Link>
-        <nav aria-label="Navegacao da pagina">
+        <nav aria-label="Navegação da página">
           <a href="#features">Recursos</a>
           <a href="#how-it-works">Como funciona</a>
           <a href="#pricing">Planos</a>
@@ -131,7 +131,7 @@ export default function HomePage() {
             Entrar
           </Link>
           <a className="sales-button small" href="#pricing">
-            Comecar
+            Começar
           </a>
         </div>
       </header>
@@ -143,8 +143,8 @@ export default function HomePage() {
           </p>
           <h1>Transforme qualquer edital em um plano de estudo completo.</h1>
           <p className="sales-lead">
-            O PlanoTrack organiza disciplinas, subtitulos, pesos, metas e calendario para quem precisa estudar com
-            clareza ate o dia da prova.
+            O PlanoTracker organiza disciplinas, subtítulos, pesos, metas e calendário para quem precisa estudar com
+            clareza até o dia da prova.
           </p>
           <div className="sales-actions">
             <a className="sales-button" href="#pricing">
@@ -167,13 +167,13 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="sales-product-shot" aria-label="Previa do PlanoTrack">
+        <div className="sales-product-shot" aria-label="Prévia do PlanoTracker">
           <div className="mock-window">
             <div className="mock-sidebar">
-              <strong>PlanoTrack</strong>
+              <strong>PlanoTracker</strong>
               <span>Painel</span>
               <span>Criar plano</span>
-              <span>Calendario</span>
+              <span>Calendário</span>
               <span>Metas</span>
               <span>Disciplinas</span>
             </div>
@@ -183,20 +183,20 @@ export default function HomePage() {
                   <small>Planejamento inteligente</small>
                   <strong>Painel</strong>
                 </div>
-                <button>Nova sessao</button>
+                <button>Nova sessão</button>
               </div>
               <div className="mock-stats">
                 <span>Horas estudadas <strong>18h 40min</strong></span>
-                <span>Metas concluidas <strong>42/120</strong></span>
+                <span>Metas concluídas <strong>42/120</strong></span>
               </div>
               <div className="mock-card large">
                 <div className="mock-card-head">
                   <strong>Foco de hoje</strong>
-                  <small>Ver calendario</small>
+                  <small>Ver calendário</small>
                 </div>
-                <StudyPreview period="Manha" subject="Direito Constitucional" topic="Direitos fundamentais" />
+                <StudyPreview period="Manhã" subject="Direito Constitucional" topic="Direitos fundamentais" />
                 <StudyPreview period="Tarde" subject="Administrativo" topic="Atos administrativos" />
-                <StudyPreview period="Noite" subject="Questoes" topic="Revisao por assunto" />
+                <StudyPreview period="Noite" subject="Questões" topic="Revisão por assunto" />
               </div>
             </div>
           </div>
@@ -210,11 +210,11 @@ export default function HomePage() {
         </div>
         <div>
           <strong>3 blocos</strong>
-          <span>rotina flexivel</span>
+          <span>rotina flexível</span>
         </div>
         <div>
           <strong>100%</strong>
-          <span>editavel depois da IA</span>
+          <span>editável depois da IA</span>
         </div>
         <div>
           <strong>ilimitado</strong>
@@ -225,10 +225,10 @@ export default function HomePage() {
       <section className="sales-section" id="features">
         <div className="sales-section-title">
           <p className="sales-kicker">Tudo em um lugar</p>
-          <h2>Do edital confuso ao plano executavel.</h2>
+          <h2>Do edital confuso ao plano executável.</h2>
           <p>
-            A pessoa nao precisa mais ficar quebrando a cabeca para dividir subtitulos, pesos e revisoes. O sistema
-            organiza a primeira versao e deixa tudo ajustavel.
+            A pessoa não precisa mais ficar quebrando a cabeça para dividir subtítulos, pesos e revisões. O sistema
+            organiza a primeira versão e deixa tudo ajustável.
           </p>
         </div>
         <div className="feature-grid">
@@ -245,39 +245,39 @@ export default function HomePage() {
       <section className="sales-section split-section">
         <div>
           <p className="sales-kicker">Sem planilha improvisada</p>
-          <h2>O estudo fica dividido por prioridade, data e acao.</h2>
+          <h2>O estudo fica dividido por prioridade, data e ação.</h2>
           <p>
-            Em vez de uma lista gigante de materias, o aluno recebe um painel com o que estudar hoje, quais topicos
-            faltam, quanto ja avancou e onde precisa fazer mais questoes.
+            Em vez de uma lista gigante de matérias, o aluno recebe um painel com o que estudar hoje, quais tópicos
+            faltam, quanto já avançou e onde precisa fazer mais questões.
           </p>
           <ul className="check-list">
             <li>
-              <CheckCircle2 size={20} /> Topicos extraidos do edital
+              <CheckCircle2 size={20} /> Tópicos extraídos do edital
             </li>
             <li>
-              <CheckCircle2 size={20} /> Materias com peso e progresso
+              <CheckCircle2 size={20} /> Matérias com peso e progresso
             </li>
             <li>
-              <CheckCircle2 size={20} /> Metas editaveis por prazo
+              <CheckCircle2 size={20} /> Metas editáveis por prazo
             </li>
             <li>
-              <CheckCircle2 size={20} /> Sessoes de estudo e questoes
+              <CheckCircle2 size={20} /> Sessões de estudo e questões
             </li>
           </ul>
         </div>
         <div className="study-board">
           <div className="board-row header">
             <span>Dia</span>
-            <span>Manha</span>
+            <span>Manhã</span>
             <span>Tarde</span>
             <span>Noite</span>
           </div>
-          {["Segunda", "Terca", "Quarta", "Quinta"].map((day, index) => (
+          {["Segunda", "Terça", "Quarta", "Quinta"].map((day, index) => (
             <div className="board-row" key={day}>
               <strong>{day}</strong>
-              <span>{["Penal", "Civil", "Tributario", "Administrativo"][index]}</span>
+              <span>{["Penal", "Civil", "Tributário", "Administrativo"][index]}</span>
               <span>{["Processo Penal", "Processo Civil", "Constitucional", "Financeiro"][index]}</span>
-              <span>Questoes</span>
+              <span>Questões</span>
             </div>
           ))}
         </div>
@@ -292,17 +292,17 @@ export default function HomePage() {
           <article>
             <span>1</span>
             <h3>Escolha um plano</h3>
-            <p>O aluno assina mensal, trimestral ou anual e cria o acesso ao PlanoTrack.</p>
+            <p>O aluno assina mensal, trimestral ou anual e cria o acesso ao PlanoTracker.</p>
           </article>
           <article>
             <span>2</span>
             <h3>Cole o edital</h3>
-            <p>Informe prova, data, horas por dia e rotina desejada. A IA monta a primeira versao.</p>
+            <p>Informe prova, data, horas por dia e rotina desejada. A IA monta a primeira versão.</p>
           </article>
           <article>
             <span>3</span>
             <h3>Acompanhe o progresso</h3>
-            <p>Use painel, calendario, metas, disciplinas e sessoes para manter o estudo visivel.</p>
+            <p>Use painel, calendário, metas, disciplinas e sessões para manter o estudo visível.</p>
           </article>
         </div>
       </section>
@@ -313,17 +313,17 @@ export default function HomePage() {
           <h2>Feito para reduzir a ansiedade antes da prova.</h2>
         </div>
         <div className="testimonial-grid">
-          <QuoteCard name="Mariana" role="Concurso municipal" text="Eu sabia as materias, mas nao sabia como quebrar tudo em metas. O plano pronto destravou minha semana." />
-          <QuoteCard name="Lucas" role="OAB" text="Gostei porque nao fica preso na IA. Ela cria, mas eu consigo editar tudo do meu jeito." />
-          <QuoteCard name="Renata" role="Vestibular" text="O calendario adaptado a minha rotina deixou bem mais facil entender o que fazer em cada dia." />
+          <QuoteCard name="Mariana" role="Concurso municipal" text="Eu sabia as matérias, mas não sabia como quebrar tudo em metas. O plano pronto destravou minha semana." />
+          <QuoteCard name="Lucas" role="OAB" text="Gostei porque não fica preso na IA. Ela cria, mas eu consigo editar tudo do meu jeito." />
+          <QuoteCard name="Renata" role="Vestibular" text="O calendário adaptado à minha rotina deixou bem mais fácil entender o que fazer em cada dia." />
         </div>
       </section>
 
       <section className="sales-section pricing-section" id="pricing">
         <div className="sales-section-title">
           <p className="sales-kicker">Planos</p>
-          <h2>Escolha o periodo e comece hoje.</h2>
-          <p>Todos os planos tem acesso completo. Quanto mais longo, menor o valor mensal equivalente.</p>
+          <h2>Escolha o período e comece hoje.</h2>
+          <p>Todos os planos têm acesso completo. Quanto mais longo, menor o valor mensal equivalente.</p>
         </div>
         <div className="landing-pricing-grid">
           {pricingPlans.map((plan) => (
@@ -366,7 +366,7 @@ export default function HomePage() {
         <div>
           <p className="sales-kicker">Garantia incondicional</p>
           <h2>7 dias para testar com calma.</h2>
-          <p>Se o PlanoTrack nao ajudar a organizar seus estudos, voce pode pedir reembolso dentro do periodo de garantia.</p>
+          <p>Se o PlanoTracker não ajudar a organizar seus estudos, você pode pedir reembolso dentro do período de garantia.</p>
         </div>
       </section>
 
@@ -375,7 +375,7 @@ export default function HomePage() {
           <p className="sales-kicker">
             <MessageCircleQuestion size={16} /> Perguntas frequentes
           </p>
-          <h2>Tirando as principais duvidas.</h2>
+          <h2>Tirando as principais dúvidas.</h2>
         </div>
         <div className="faq-list">
           {faqs.map((faq) => (
@@ -388,15 +388,15 @@ export default function HomePage() {
       </section>
 
       <section className="final-cta">
-        <h2>Seu edital nao precisa virar bagunca.</h2>
-        <p>Escolha um plano, crie seu acesso e deixe o PlanoTrack montar a primeira rota de estudo.</p>
+        <h2>Seu edital não precisa virar bagunça.</h2>
+        <p>Escolha um plano, crie seu acesso e deixe o PlanoTracker montar a primeira rota de estudo.</p>
         <a className="sales-button" href="#pricing">
           Ver planos <ArrowRight size={20} />
         </a>
       </section>
 
       <footer className="sales-footer">
-        <span>© 2026 PlanoTrack</span>
+        <span>© 2026 PlanoTracker</span>
         <nav>
           <Link href="/login">Entrar</Link>
           <a href="#pricing">Planos</a>

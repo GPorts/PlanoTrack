@@ -5,7 +5,7 @@ import { Loader2, Sparkles } from "lucide-react";
 import { PlanPreview } from "@/components/PlanPreview";
 import type { GeneratedPlan } from "@/lib/types";
 
-const weekdays = ["Segunda-feira", "Terca-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sabado"];
+const weekdays = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 
 export function PlanCreator() {
   const [loading, setLoading] = useState(false);
@@ -30,7 +30,7 @@ export function PlanCreator() {
     setLoading(false);
 
     if (!response.ok) {
-      setError(data.error || "Nao foi possivel gerar o plano.");
+      setError(data.error || "Não foi possível gerar o plano.");
       return;
     }
 
@@ -76,8 +76,8 @@ export function PlanCreator() {
 
         <label className="field">
           Rotina desejada
-          <span>Exemplo: teoria de manha e tarde, questoes a noite.</span>
-          <input name="preferredBlocks" defaultValue="Ex: manha e tarde para teoria; noite para questoes e revisao." />
+          <span>Exemplo: teoria de manhã e tarde, questões à noite.</span>
+          <input name="preferredBlocks" defaultValue="Ex: manhã e tarde para teoria; noite para questões e revisão." />
         </label>
 
         <label className="field">
@@ -85,12 +85,12 @@ export function PlanCreator() {
           <span>Cole o texto ou anexe o PDF do edital acima.</span>
           <textarea
             name="editalText"
-            placeholder="Cole aqui disciplinas, topicos e pesos do edital..."
-            defaultValue={"1. Lingua Portuguesa\n2. Direito Administrativo\n3. Direito Constitucional"}
+            placeholder="Cole aqui disciplinas, tópicos e pesos do edital..."
+            defaultValue={"1. Língua Portuguesa\n2. Direito Administrativo\n3. Direito Constitucional"}
           />
         </label>
 
-        <div className="notice">A IA extrai o edital e o PlanoTrack monta o calendario completo ate a prova.</div>
+        <div className="notice">A IA extrai o edital e o PlanoTracker monta o calendário completo até a prova.</div>
 
         {error ? <div className="notice">{error}</div> : null}
 
@@ -106,7 +106,7 @@ export function PlanCreator() {
         <aside className="card">
           <h2>Como o MVP cobra</h2>
           <p className="muted">
-            A assinatura libera geracoes ilimitadas com IA. O app pode conferir assinatura ativa no Supabase antes de
+            A assinatura libera gerações ilimitadas com IA. O app pode conferir assinatura ativa no Supabase antes de
             gerar o plano.
           </p>
           <div className="notice" style={{ marginTop: 14 }}>
@@ -117,3 +117,4 @@ export function PlanCreator() {
     </section>
   );
 }
+

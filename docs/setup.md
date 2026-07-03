@@ -1,4 +1,4 @@
-# PlanoTrack setup
+# PlanoTracker setup
 
 ## 1. Rodar localmente
 
@@ -18,14 +18,14 @@ Copie `.env.example` para `.env.local` e preencha as chaves conforme for criando
 
 ## 3. OpenAI
 
-Preencha `OPENAI_API_KEY` e, se quiser manter o padrao do projeto, `OPENAI_MODEL=gpt-4.1-mini`.
+Preencha `OPENAI_API_KEY` e, se quiser manter o padrão do projeto, `OPENAI_MODEL=gpt-4.1-mini`.
 
-Em producao, deixe `ENABLE_MOCK_AI=false` para chamar a API real. Se `ENABLE_MOCK_AI=true` ou `OPENAI_API_KEY` estiver vazia, a rota usa o gerador local e nao gasta saldo da OpenAI.
+Em produção, deixe `ENABLE_MOCK_AI=false` para chamar a API real. Se `ENABLE_MOCK_AI=true` ou `OPENAI_API_KEY` estiver vazia, a rota usa o gerador local e não gasta saldo da OpenAI.
 
 ## 4. Cakto
 
-1. Crie tres ofertas/assinaturas: mensal, trimestral e anual.
-2. Os tres links de checkout da Cakto ja estao conectados na landing e na tela `/checkout`.
+1. Crie três ofertas/assinaturas: mensal, trimestral e anual.
+2. Os três links de checkout da Cakto já estão conectados na landing e na tela `/checkout`.
 3. Configure webhook para:
 
 ```text
@@ -34,16 +34,16 @@ https://seu-dominio.com/api/cakto/webhook
 
 Eventos importantes: compra aprovada, assinatura renovada, assinatura cancelada, reembolso e chargeback.
 
-Sugestao de metadata na Cakto:
+Sugestão de metadata na Cakto:
 
 ```text
 plan_code=monthly | quarterly | annual
 billing_cycle=monthly | quarterly | annual
-user_id={{id do usuario no PlanoTrack}}
+user_id={{id do usuário no PlanoTracker}}
 ```
 
 ## 5. Modelo de MVP
 
-- Usuario sem assinatura nao acessa o app interno.
-- Assinatura ativa libera criacao ilimitada de planos com IA.
+- Usuário sem assinatura não acessa o app interno.
+- Assinatura ativa libera criação ilimitada de planos com IA.
 - Mensal, trimestral e anual entregam os mesmos recursos; muda apenas o desconto.

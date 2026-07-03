@@ -1,6 +1,6 @@
 import type { GeneratedPlan, StudyPlanRequest, SubjectInput, ScheduleItem } from "./types";
 
-const weekdayNames = ["Domingo", "Segunda-feira", "Terca-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sabado"];
+const weekdayNames = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 
 export function generateRuleBasedPlan(input: StudyPlanRequest): GeneratedPlan {
   const subjects = input.subjects?.length ? input.subjects : fallbackSubjects(input.editalText);
@@ -9,12 +9,12 @@ export function generateRuleBasedPlan(input: StudyPlanRequest): GeneratedPlan {
   return {
     title: input.routine.examName || "Novo plano de estudos",
     examDate: input.routine.examDate,
-    summary: `Plano criado para ${subjects.length} disciplinas, com ${input.routine.hoursPerDay} horas por dia ate a data da prova.`,
+    summary: `Plano criado para ${subjects.length} disciplinas, com ${input.routine.hoursPerDay} horas por dia até a data da prova.`,
     subjects,
     schedule,
     recommendations: [
-      "Priorize disciplinas com mais pontos e mais topicos pendentes.",
-      "Reserve o bloco da noite para questoes, revisao e caderno de erros.",
+      "Priorize disciplinas com mais pontos e mais tópicos pendentes.",
+      "Reserve o bloco da noite para questões, revisão e caderno de erros.",
       "Replaneje semanalmente quando houver atraso relevante."
     ],
     source: "rules"
@@ -25,18 +25,18 @@ function fallbackSubjects(editalText = ""): SubjectInput[] {
   const guessed = editalText
     .split(/\n+/)
     .map((line) => line.trim())
-    .filter((line) => /^[0-9]+\.?\s+[A-ZÁÉÍÓÚÃÕÇ\s]{6,}/.test(line))
+    .filter((line) => /^[0-9]+\.?\s+[\p{Lu}\s]{6,}/u.test(line))
     .slice(0, 8)
     .map((line) => line.replace(/^[0-9]+\.?\s+/, "").toLowerCase())
     .map((line) => line.charAt(0).toUpperCase() + line.slice(1).toLowerCase());
 
-  const names = guessed.length ? guessed : ["Lingua Portuguesa", "Direito Administrativo", "Direito Constitucional"];
+  const names = guessed.length ? guessed : ["Língua Portuguesa", "Direito Administrativo", "Direito Constitucional"];
 
   return names.map((name) => ({
     name,
     questions: 5,
     weight: 10,
-    topics: ["Topico 1 extraido do edital", "Topico 2 extraido do edital", "Revisao e questoes"]
+    topics: ["Tópico 1 extraído do edital", "Tópico 2 extraído do edital", "Revisão e questões"]
   }));
 }
 
@@ -99,9 +99,9 @@ function inferKind(text: string, periodKey: string): ScheduleItem["kind"] {
   const nearby = text.slice(start, end);
   const anchor = periodPosition - start;
   const matches = [
-    { kind: "questoes" as const, distance: closestDistance(nearby, anchor, ["questoes", "questao", "exercicio", "exercicios", "simulado", "simulados"]) },
-    { kind: "revisao" as const, distance: closestDistance(nearby, anchor, ["revisao", "revisar", "resumo", "resumos"]) },
-    { kind: "teoria" as const, distance: closestDistance(nearby, anchor, ["teoria", "aula", "aulas", "leitura", "conteudo"]) }
+    { kind: "questoes" as const, distance: closestDistance(nearby, anchor, ["questões", "questão", "exercicio", "exercicios", "simulado", "simulados"]) },
+    { kind: "revisao" as const, distance: closestDistance(nearby, anchor, ["revisão", "revisar", "resumo", "resumos"]) },
+    { kind: "teoria" as const, distance: closestDistance(nearby, anchor, ["teoria", "aula", "aulas", "leitura", "conteúdo"]) }
   ].filter((match) => match.distance !== Infinity);
 
   if (!matches.length) return "teoria";
@@ -145,14 +145,14 @@ function slot(
 ): ScheduleItem {
   const index = cursors.get(subject.name) || 0;
   cursors.set(subject.name, index + 1);
-  const topic = subject.topics[index % subject.topics.length] || "Revisao geral";
+  const topic = subject.topics[index % subject.topics.length] || "Revisão geral";
 
   return {
     date: toIso(date),
     weekday: weekdayNames[date.getDay()],
     period,
     subject: subject.name,
-    topic: kind === "questoes" ? `Questoes: ${topic}` : topic,
+    topic: kind === "questoes" ? `Questões: ${topic}` : topic,
     kind,
     minutes
   };

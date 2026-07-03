@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     const parsed = requestSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: "Dados invalidos para gerar plano." }, { status: 400 });
+      return NextResponse.json({ error: "Dados inválidos para gerar plano." }, { status: 400 });
     }
 
     const plan = await generatePlanWithAi(parsed.data);
@@ -75,7 +75,7 @@ async function serializeFile(file: File) {
   const maxSize = 8 * 1024 * 1024;
 
   if (file.size > maxSize) {
-    throw new Error("O arquivo precisa ter ate 8 MB.");
+    throw new Error("O arquivo precisa ter até 8 MB.");
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());

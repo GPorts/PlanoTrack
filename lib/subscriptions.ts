@@ -19,7 +19,7 @@ export async function upsertSubscription(params: {
     return {
       ok: true,
       mode: "mock",
-      message: "Supabase nao configurado. Assinatura aceita apenas em modo demonstracao."
+      message: "Supabase não configurado. Assinatura aceita apenas em modo demonstração."
     };
   }
 
@@ -64,3 +64,4 @@ export async function upsertSubscription(params: {
     mode: "supabase"
   };
 }
+

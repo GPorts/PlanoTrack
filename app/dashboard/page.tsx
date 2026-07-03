@@ -10,7 +10,7 @@ export default function DashboardPage() {
         <div>
           <p className="eyebrow">Dashboard</p>
           <h1 style={{ fontSize: "2.3rem", lineHeight: 1.05 }}>Seu centro de estudos</h1>
-          <p className="muted">Esta tela ja esta pronta para receber dados do Supabase.</p>
+          <p className="muted">Esta tela já esta pronta para receber dados do Supabase.</p>
         </div>
         <Link className="button" href="/plans">
           Novo plano <Sparkles size={18} />

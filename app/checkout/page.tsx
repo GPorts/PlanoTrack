@@ -5,8 +5,8 @@ const plans = [
   {
     name: "Mensal",
     price: "R$ 29,90",
-    suffix: "/mes",
-    description: "Cobranca mensal recorrente",
+    suffix: "/mês",
+    description: "Cobrança mensal recorrente",
     cta: "Assinar mensal",
     href: "https://pay.cakto.com.br/eyeihqu_955621"
   },
@@ -14,7 +14,7 @@ const plans = [
     name: "Anual",
     price: "R$ 249,90",
     suffix: "/ano",
-    description: "Equivale a R$ 20,82/mes",
+    description: "Equivale a R$ 20,82/mês",
     cta: "Assinar anual",
     href: "https://pay.cakto.com.br/377yac9"
   },
@@ -22,7 +22,7 @@ const plans = [
     name: "Trimestral",
     price: "R$ 79,90",
     suffix: "/trim",
-    description: "Equivale a R$ 26,63/mes",
+    description: "Equivale a R$ 26,63/mês",
     cta: "Assinar trimestral",
     href: "https://pay.cakto.com.br/gmnhfte"
   }
@@ -34,8 +34,8 @@ export default function CheckoutPage() {
       <div className="section-title">
         <div>
           <p className="eyebrow">Planos</p>
-          <h1 style={{ fontSize: "2.3rem", lineHeight: 1.05 }}>Assinatura PlanoTrack</h1>
-          <p className="muted">Todos os planos liberam criacao ilimitada de planos com IA.</p>
+          <h1 style={{ fontSize: "2.3rem", lineHeight: 1.05 }}>Assinatura PlanoTracker</h1>
+          <p className="muted">Todos os planos liberam criação ilimitada de planos com IA.</p>
         </div>
       </div>
 
@@ -55,7 +55,7 @@ export default function CheckoutPage() {
       </section>
 
       <div className="notice" style={{ marginTop: 18 }}>
-        <ShieldCheck size={18} /> Quando a Cakto chamar o webhook, o PlanoTrack grava ou atualiza a assinatura no
+        <ShieldCheck size={18} /> Quando a Cakto chamar o webhook, o PlanoTracker grava ou atualiza a assinatura no
         Supabase.
       </div>
     </main>
