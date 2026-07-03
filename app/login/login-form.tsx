@@ -53,7 +53,16 @@ export function LoginForm() {
   }
 
   return (
-    <form className="card form" onSubmit={submit}>
+    <form className="card form login-card" onSubmit={submit}>
+      <div className="login-card-copy">
+        <h1>{mode === "signin" ? "Bem-vindo de volta" : "Criar sua conta"}</h1>
+        <p>
+          {mode === "signin"
+            ? "Acesse seu painel de estudos e continue sua organização."
+            : "Crie seu acesso para entrar no painel e montar seus planos de estudo."}
+        </p>
+      </div>
+
       <div className="auth-tabs" aria-label="Tipo de acesso">
         <button className={mode === "signin" ? "active" : ""} type="button" onClick={() => setMode("signin")}>
           Entrar
