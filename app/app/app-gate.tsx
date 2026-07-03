@@ -12,6 +12,7 @@ export function AppGate() {
   const router = useRouter();
   const [state, setState] = useState<AccessState>("loading");
   const [email, setEmail] = useState("");
+  const [userId, setUserId] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -26,6 +27,7 @@ export function AppGate() {
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
       const userEmail = data.session?.user.email || "";
+      const sessionUserId = data.session?.user.id || "";
 
       if (!token) {
         if (active) setState("signed-out");
@@ -33,6 +35,7 @@ export function AppGate() {
       }
 
       setEmail(userEmail);
+      setUserId(sessionUserId);
 
       await fetch("/api/auth/link-subscription", {
         method: "POST",
@@ -66,7 +69,7 @@ export function AppGate() {
     };
   }, [router]);
 
-  if (state === "allowed") return <PlanoTrackApp />;
+  if (state === "allowed") return <PlanoTrackApp userId={userId} />;
 
   return (
     <main className="page">

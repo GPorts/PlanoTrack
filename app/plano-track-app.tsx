@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, ClipboardList, LayoutDashboard, ListChecks, Plus, Sparkles } from "lucide-react";
+import { createBrowserSupabaseClient } from "@/lib/supabase";
 import type { GeneratedPlan, ScheduleItem, SubjectInput } from "@/lib/types";
 
 type View = "dashboard" | "create" | "calendar" | "goals" | "subjects" | "sessions";
@@ -29,13 +30,41 @@ type Session = {
   notes: string;
 };
 
+type StoredPlan = {
+  id: string;
+  title: string;
+  exam_date: string;
+  summary: string | null;
+  subjects: Array<{
+    id: string;
+    name: string;
+    questions: number | null;
+    weight: number | null;
+    topics: Array<{
+      id: string;
+      title: string;
+      status: string;
+      position: number;
+    }>;
+  }>;
+  schedule_items: Array<{
+    id: string;
+    date: string;
+    period: ScheduleItem["period"];
+    kind: ScheduleItem["kind"];
+    minutes: number;
+    subject_name: string;
+    topic_title: string;
+  }>;
+};
+
 const colors = ["#c92a2a", "#2563eb", "#149b7e", "#7c3aed", "#d97706", "#0891b2", "#b91c1c", "#4f46e5", "#15803d", "#0f766e"];
 const calendarColors = ["#176b5f", "#2458a6", "#9a3412", "#6d3fb6", "#0f766e", "#b4232a", "#2f6f43"];
 const initialSubjects: Subject[] = [];
 const initialSchedule: ScheduleItem[] = [];
 const initialGoals: Goal[] = [];
 
-export function PlanoTrackApp() {
+export function PlanoTrackApp({ userId }: { userId: string }) {
   const [view, setView] = useState<View>("dashboard");
   const [subjects, setSubjects] = useState(initialSubjects);
   const [goals, setGoals] = useState(initialGoals);
@@ -46,6 +75,52 @@ export function PlanoTrackApp() {
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [isSubjectModalOpen, setIsSubjectModalOpen] = useState(false);
   const [lastPlanSource, setLastPlanSource] = useState<GeneratedPlan["source"]>();
+  const [currentPlanId, setCurrentPlanId] = useState("");
+  const [storageMessage, setStorageMessage] = useState("");
+  const [isLoadingPlan, setIsLoadingPlan] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadLatestPlan() {
+      const supabase = createBrowserSupabaseClient();
+
+      if (!supabase || !userId) {
+        if (active) setIsLoadingPlan(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("study_plans")
+        .select(
+          "id,title,exam_date,summary,subjects(id,name,questions,weight,topics(id,title,status,position)),schedule_items(id,date,period,kind,minutes,subject_name,topic_title)"
+        )
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!active) return;
+
+      if (error) {
+        setStorageMessage("Nao foi possivel carregar seu ultimo plano salvo.");
+        setIsLoadingPlan(false);
+        return;
+      }
+
+      if (data) {
+        importStoredPlan(data as StoredPlan);
+      }
+
+      setIsLoadingPlan(false);
+    }
+
+    loadLatestPlan();
+
+    return () => {
+      active = false;
+    };
+  }, [userId]);
 
   const stats = useMemo(() => {
     const minutes = sessions.reduce((sum, session) => sum + session.minutes, 0);
@@ -72,7 +147,7 @@ export function PlanoTrackApp() {
   const totalGoals = goals.length || 1;
   const progressPercent = Math.round((stats.doneGoals / totalGoals) * 100);
 
-  function importGeneratedPlan(plan: GeneratedPlan) {
+  function applyGeneratedPlan(plan: GeneratedPlan) {
     const mappedSubjects = plan.subjects.map((subject, index) => ({
       ...subject,
       color: colors[index % colors.length],
@@ -93,6 +168,129 @@ export function PlanoTrackApp() {
     setSchedule(plan.schedule);
     setLastPlanSource(plan.source);
     setView("dashboard");
+
+    return { mappedSubjects, mappedGoals };
+  }
+
+  function importGeneratedPlan(plan: GeneratedPlan) {
+    applyGeneratedPlan(plan);
+    saveGeneratedPlan(plan).catch(() => {
+      setStorageMessage("Plano criado, mas nao foi possivel salvar no Supabase.");
+    });
+  }
+
+  function importStoredPlan(plan: StoredPlan) {
+    const sortedSubjects = [...(plan.subjects || [])].sort((a, b) => a.name.localeCompare(b.name));
+    const mappedSubjects = sortedSubjects.map((subject, index) => ({
+      name: subject.name,
+      questions: subject.questions || 0,
+      weight: Number(subject.weight || 0),
+      color: colors[index % colors.length],
+      progress: 0,
+      topics: [...(subject.topics || [])].sort((a, b) => a.position - b.position).map((topic) => topic.title)
+    }));
+    const mappedGoals = sortedSubjects.flatMap((subject) =>
+      [...(subject.topics || [])]
+        .sort((a, b) => a.position - b.position)
+        .map((topic) => ({
+          id: topic.id,
+          title: topic.title,
+          subject: subject.name,
+          due: plan.exam_date,
+          done: topic.status === "done"
+        }))
+    );
+    const mappedSchedule = [...(plan.schedule_items || [])]
+      .sort((a, b) => `${a.date}-${periodOrder(a.period)}`.localeCompare(`${b.date}-${periodOrder(b.period)}`))
+      .map((item) => ({
+        date: item.date,
+        weekday: weekdayFromIso(item.date),
+        period: item.period,
+        subject: item.subject_name,
+        topic: item.topic_title,
+        kind: item.kind,
+        minutes: item.minutes
+      }));
+
+    setCurrentPlanId(plan.id);
+    setSubjects(mappedSubjects);
+    setGoals(mappedGoals);
+    setSchedule(mappedSchedule);
+  }
+
+  async function saveGeneratedPlan(plan: GeneratedPlan) {
+    const supabase = createBrowserSupabaseClient();
+
+    if (!supabase || !userId) return;
+
+    setStorageMessage("Salvando plano...");
+
+    const { data: savedPlan, error: planError } = await supabase
+      .from("study_plans")
+      .insert({
+        user_id: userId,
+        title: plan.title,
+        exam_date: plan.examDate,
+        mode: "ai",
+        summary: plan.summary
+      })
+      .select("id")
+      .single();
+
+    if (planError || !savedPlan) throw planError || new Error("Plano nao salvo.");
+
+    const planId = savedPlan.id as string;
+    const subjectIdByName = new Map<string, string>();
+
+    for (const subject of plan.subjects) {
+      const { data: savedSubject, error: subjectError } = await supabase
+        .from("subjects")
+        .insert({
+          plan_id: planId,
+          name: subject.name,
+          questions: subject.questions || 0,
+          weight: subject.weight || 0
+        })
+        .select("id")
+        .single();
+
+      if (subjectError || !savedSubject) throw subjectError || new Error("Disciplina nao salva.");
+
+      const subjectId = savedSubject.id as string;
+      subjectIdByName.set(subject.name, subjectId);
+
+      if (subject.topics.length) {
+        const { error: topicsError } = await supabase.from("topics").insert(
+          subject.topics.map((topic, index) => ({
+            subject_id: subjectId,
+            title: topic,
+            position: index
+          }))
+        );
+
+        if (topicsError) throw topicsError;
+      }
+    }
+
+    if (plan.schedule.length) {
+      const { error: scheduleError } = await supabase.from("schedule_items").insert(
+        plan.schedule.map((item) => ({
+          plan_id: planId,
+          date: item.date,
+          period: item.period,
+          kind: item.kind,
+          minutes: item.minutes,
+          subject_name: item.subject,
+          topic_title: item.topic
+        }))
+      );
+
+      if (scheduleError) throw scheduleError;
+    }
+
+    setCurrentPlanId(planId);
+    setStorageMessage("Plano salvo automaticamente.");
+    window.setTimeout(() => setStorageMessage(""), 3000);
   }
 
   function openGoalModal(goal?: Goal) {
@@ -157,6 +355,7 @@ export function PlanoTrackApp() {
           <div>
             <p className="eyebrow">Planejamento inteligente</p>
             <h1>{viewTitle}</h1>
+            {currentPlanId ? <p className="mini-meta">Plano salvo</p> : null}
           </div>
           <div className="top-actions">
             <button className="primary-button" type="button" onClick={() => setView("sessions")}>
@@ -166,7 +365,17 @@ export function PlanoTrackApp() {
         </header>
 
         {view === "dashboard" ? (
-          <Dashboard stats={stats} goals={goals} subjects={subjects} schedule={schedule} sessions={sessions} setView={setView} lastPlanSource={lastPlanSource} />
+          <Dashboard
+            stats={stats}
+            goals={goals}
+            subjects={subjects}
+            schedule={schedule}
+            sessions={sessions}
+            setView={setView}
+            lastPlanSource={lastPlanSource}
+            storageMessage={storageMessage}
+            isLoadingPlan={isLoadingPlan}
+          />
         ) : null}
         {view === "create" ? <CreatePlan onPlanGenerated={importGeneratedPlan} /> : null}
         {view === "calendar" ? <Calendar schedule={schedule} /> : null}
@@ -218,7 +427,9 @@ function Dashboard({
   schedule,
   sessions,
   setView,
-  lastPlanSource
+  lastPlanSource,
+  storageMessage,
+  isLoadingPlan
 }: {
   stats: { minutes: number; questions: number; accuracy: number; doneGoals: number };
   goals: Goal[];
@@ -227,9 +438,13 @@ function Dashboard({
   sessions: Session[];
   setView: (view: View) => void;
   lastPlanSource?: GeneratedPlan["source"];
+  storageMessage: string;
+  isLoadingPlan: boolean;
 }) {
   return (
     <>
+      {isLoadingPlan ? <div className="notice plan-source-notice">Carregando seu ultimo plano salvo...</div> : null}
+      {storageMessage ? <div className="notice plan-source-notice">{storageMessage}</div> : null}
       {lastPlanSource ? (
         <div className={`notice plan-source-notice ${lastPlanSource === "openai" ? "success-notice" : ""}`}>
           {lastPlanSource === "openai"
@@ -852,6 +1067,17 @@ function formatDate(value: string) {
   const [year, month, day] = value.split("-");
   if (!day) return value;
   return `${day}/${month}/${year}`;
+}
+
+function weekdayFromIso(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  const names = ["Domingo", "Segunda-feira", "Terca-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sabado"];
+  return names[date.getDay()] || "";
+}
+
+function periodOrder(period: ScheduleItem["period"]) {
+  return { Manha: 1, Tarde: 2, Noite: 3 }[period] || 9;
 }
 
 function formatWeight(subject: Subject) {
