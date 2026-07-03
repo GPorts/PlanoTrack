@@ -350,7 +350,7 @@ function CreatePlan({ onPlanGenerated }: { onPlanGenerated: (plan: GeneratedPlan
 
         <label>
           Rotina desejada
-          <input name="preferredBlocks" defaultValue="Manha e tarde para teoria; noite para questoes e revisao." />
+          <input name="preferredBlocks" defaultValue="Ex: manha e tarde para teoria; noite para questoes e revisao." />
         </label>
         <label>
           Edital

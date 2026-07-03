@@ -31,7 +31,7 @@ const features = [
   {
     icon: <CalendarDays size={22} />,
     title: "Cronograma diario",
-    text: "Manha, tarde e noite organizadas por data, com teoria, revisao e questoes."
+    text: "Rotina flexivel por data, com teoria, revisao, questoes ou os blocos que fizerem sentido."
   },
   {
     icon: <Target size={22} />,
@@ -210,7 +210,7 @@ export default function HomePage() {
         </div>
         <div>
           <strong>3 blocos</strong>
-          <span>manha, tarde e noite</span>
+          <span>rotina flexivel</span>
         </div>
         <div>
           <strong>100%</strong>
@@ -315,7 +315,7 @@ export default function HomePage() {
         <div className="testimonial-grid">
           <QuoteCard name="Mariana" role="Concurso municipal" text="Eu sabia as materias, mas nao sabia como quebrar tudo em metas. O plano pronto destravou minha semana." />
           <QuoteCard name="Lucas" role="OAB" text="Gostei porque nao fica preso na IA. Ela cria, mas eu consigo editar tudo do meu jeito." />
-          <QuoteCard name="Renata" role="Vestibular" text="O calendario com manha, tarde e noite deixou bem mais facil entender o que fazer em cada dia." />
+          <QuoteCard name="Renata" role="Vestibular" text="O calendario adaptado a minha rotina deixou bem mais facil entender o que fazer em cada dia." />
         </div>
       </section>
 

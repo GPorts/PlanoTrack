@@ -77,7 +77,7 @@ export function PlanCreator() {
         <label className="field">
           Rotina desejada
           <span>Exemplo: teoria de manha e tarde, questoes a noite.</span>
-          <input name="preferredBlocks" defaultValue="Manha e tarde para teoria; noite para questoes e revisao." />
+          <input name="preferredBlocks" defaultValue="Ex: manha e tarde para teoria; noite para questoes e revisao." />
         </label>
 
         <label className="field">
