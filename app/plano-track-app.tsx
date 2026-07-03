@@ -30,121 +30,17 @@ type Session = {
 };
 
 const colors = ["#c92a2a", "#2563eb", "#149b7e", "#7c3aed", "#d97706", "#0891b2", "#b91c1c", "#4f46e5", "#15803d", "#0f766e"];
-
-const initialSubjects: Subject[] = [
-  {
-    name: "Lingua Portuguesa",
-    questions: 6,
-    weight: 9,
-    color: colors[0],
-    progress: 0,
-    topics: ["Interpretacao de texto", "Generos textuais", "Coesao e coerencia", "Classes de palavras", "Sintaxe"]
-  },
-  {
-    name: "Direito Constitucional",
-    questions: 8,
-    weight: 12,
-    color: colors[1],
-    progress: 0,
-    topics: ["Controle de constitucionalidade", "Direitos fundamentais", "Organizacao do Estado", "Organizacao dos Poderes"]
-  },
-  {
-    name: "Direito Administrativo",
-    questions: 8,
-    weight: 12,
-    color: colors[2],
-    progress: 0,
-    topics: ["Principios administrativos", "Atos administrativos", "Agentes publicos", "Licitacoes", "Responsabilidade civil do Estado"]
-  },
-  {
-    name: "Direito Processual Civil e Direito Civil",
-    questions: 5,
-    weight: 10,
-    color: colors[3],
-    progress: 0,
-    topics: ["Processo de conhecimento", "Recursos", "Fazenda Publica em juizo", "LINDB", "Obrigacoes e contratos"]
-  },
-  {
-    name: "Direito Processual Penal e Direito Penal",
-    questions: 5,
-    weight: 10,
-    color: colors[4],
-    progress: 0,
-    topics: ["Inquerito policial", "Acao penal", "Provas", "Crimes contra a Administracao Publica", "Abuso de autoridade"]
-  },
-  {
-    name: "Direito Tributario, Financeiro e Orcamentario",
-    questions: 8,
-    weight: 12,
-    color: colors[5],
-    progress: 0,
-    topics: ["Sistema Tributario Nacional", "Credito tributario", "Tributos municipais", "PPA, LDO e LOA", "LRF"]
-  },
-  {
-    name: "Direito do Trabalho e Direito Processual do Trabalho",
-    questions: 5,
-    weight: 10,
-    color: colors[6],
-    progress: 0,
-    topics: ["Contrato de trabalho", "Jornada", "Verbas rescisorias", "Recursos trabalhistas", "Execucao trabalhista"]
-  },
-  {
-    name: "Direito Urbanistico",
-    questions: 5,
-    weight: 7.5,
-    color: colors[7],
-    progress: 0,
-    topics: ["Estatuto da Cidade", "Plano Diretor", "Zoneamento", "Regularizacao fundiaria", "Licenciamento urbanistico"]
-  },
-  {
-    name: "Direito Ambiental",
-    questions: 5,
-    weight: 7.5,
-    color: colors[8],
-    progress: 0,
-    topics: ["Politica Nacional do Meio Ambiente", "Licenciamento ambiental", "EIA/RIMA", "Crimes ambientais", "Competencias municipais"]
-  },
-  {
-    name: "Legislacao Municipal",
-    questions: 5,
-    weight: 10,
-    color: colors[9],
-    progress: 0,
-    topics: ["Lei Organica", "Estatuto dos Servidores", "Plano de cargos", "Estrutura administrativa"]
-  }
-];
-
-const initialSchedule: ScheduleItem[] = [
-  item("2026-06-29", "Segunda-feira", "Manha", "Direito Processual Penal e Direito Penal", "Direito Penal: principios constitucionais e gerais", "teoria"),
-  item("2026-06-29", "Segunda-feira", "Tarde", "Direito Processual Penal e Direito Penal", "Direito Processual Penal: principios constitucionais e gerais", "teoria"),
-  item("2026-06-29", "Segunda-feira", "Noite", "Direito Administrativo", "Questoes do tema: Administracao Publica direta e indireta", "questoes"),
-  item("2026-06-30", "Terca-feira", "Manha", "Direito Processual Civil e Direito Civil", "Direito Civil: LINDB", "teoria"),
-  item("2026-06-30", "Terca-feira", "Tarde", "Direito Processual Civil e Direito Civil", "Processo Civil: normas fundamentais", "teoria"),
-  item("2026-06-30", "Terca-feira", "Noite", "Lingua Portuguesa", "Questoes: interpretacao de texto", "questoes")
-];
-
-const initialGoals: Goal[] = initialSubjects.flatMap((subject, subjectIndex) =>
-  subject.topics.map((topic, topicIndex) => ({
-    id: `${subjectIndex}-${topicIndex}`,
-    title: topic,
-    subject: subject.name,
-    due: topicIndex < 2 ? "2026-07-10" : "2026-08-20",
-    done: subjectIndex === 0 && topicIndex < 2
-  }))
-);
-
-function item(date: string, weekday: string, period: ScheduleItem["period"], subject: string, topic: string, kind: ScheduleItem["kind"]): ScheduleItem {
-  return { date, weekday, period, subject, topic, kind, minutes: 120 };
-}
+const calendarColors = ["#176b5f", "#2458a6", "#9a3412", "#6d3fb6", "#0f766e", "#b4232a", "#2f6f43"];
+const initialSubjects: Subject[] = [];
+const initialSchedule: ScheduleItem[] = [];
+const initialGoals: Goal[] = [];
 
 export function PlanoTrackApp() {
   const [view, setView] = useState<View>("dashboard");
   const [subjects, setSubjects] = useState(initialSubjects);
   const [goals, setGoals] = useState(initialGoals);
   const [schedule, setSchedule] = useState(initialSchedule);
-  const [sessions, setSessions] = useState<Session[]>([
-    { id: "1", date: "2026-06-28", subject: "Lingua Portuguesa", minutes: 100, questions: 0, correct: 0, notes: "Teste inicial" }
-  ]);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
@@ -173,6 +69,8 @@ export function PlanoTrackApp() {
     subjects: "Disciplinas",
     sessions: "Sessoes"
   }[view];
+  const totalGoals = goals.length || 1;
+  const progressPercent = Math.round((stats.doneGoals / totalGoals) * 100);
 
   function importGeneratedPlan(plan: GeneratedPlan) {
     const mappedSubjects = plan.subjects.map((subject, index) => ({
@@ -248,9 +146,9 @@ export function PlanoTrackApp() {
         <div className="sidebar-block">
           <div className="block-title">Progresso geral</div>
           <div className="progress-track">
-            <div className="progress-fill" style={{ width: `${Math.round((stats.doneGoals / goals.length) * 100)}%` }} />
+            <div className="progress-fill" style={{ width: `${progressPercent}%` }} />
           </div>
-          <div className="small-muted">{Math.round((stats.doneGoals / goals.length) * 100)}% concluido</div>
+          <div className="small-muted">{progressPercent}% concluido</div>
         </div>
       </aside>
 
@@ -355,7 +253,9 @@ function Dashboard({
               Ver calendario
             </button>
           </div>
-          <div className="stack-list">{schedule.slice(0, 3).map((slot, index) => <StudySlot key={index} slot={slot} />)}</div>
+          <div className="stack-list">
+            {schedule.length ? schedule.slice(0, 3).map((slot, index) => <StudySlot key={index} slot={slot} />) : <EmptyState text="Crie seu primeiro plano para preencher o foco de hoje." />}
+          </div>
         </section>
 
         <section className="panel">
@@ -365,7 +265,9 @@ function Dashboard({
               Editar
             </button>
           </div>
-          <div className="subject-list">{subjects.map((subject) => <SubjectRow key={subject.name} subject={subject} sessions={sessions} />)}</div>
+          <div className="subject-list">
+            {subjects.length ? subjects.map((subject) => <SubjectRow key={subject.name} subject={subject} sessions={sessions} />) : <EmptyState text="As disciplinas aparecem aqui depois que o plano for gerado." />}
+          </div>
         </section>
       </div>
     </>
@@ -475,7 +377,11 @@ function Calendar({ schedule }: { schedule: ScheduleItem[] }) {
     }, {})
   );
 
-  return <div className="calendar-grid">{days.map((day) => <DayCard key={day[0].date} day={day} />)}</div>;
+  if (!days.length) {
+    return <EmptyPanel title="Calendario vazio" text="Gere um plano com IA para montar os dias de estudo ate a prova." />;
+  }
+
+  return <div className="calendar-grid">{days.map((day, index) => <DayCard key={day[0].date} day={day} color={calendarColors[index % calendarColors.length]} />)}</div>;
 }
 
 function Goals({
@@ -507,7 +413,7 @@ function Goals({
           </button>
         </div>
         <div className="stack-list">
-          {goals.map((goal) => (
+          {goals.length ? goals.map((goal) => (
             <article className="goal-item" key={goal.id}>
               <div>
                 <strong>{goal.title}</strong>
@@ -531,7 +437,7 @@ function Goals({
                 </button>
               </div>
             </article>
-          ))}
+          )) : <EmptyState text="As metas serao criadas automaticamente a partir dos subtopicos do edital." />}
         </div>
       </section>
 
@@ -578,7 +484,7 @@ function Subjects({
           </button>
         </div>
         <div className="subject-cards">
-          {subjects.map((subject) => (
+          {subjects.length ? subjects.map((subject) => (
             <article className="subject-card" key={subject.name}>
               <div className="subject-card-head">
                 <div className="subject-name">
@@ -605,7 +511,7 @@ function Subjects({
                 <ol>{subject.topics.map((topic) => <li key={topic}>{topic}</li>)}</ol>
               </details>
             </article>
-          ))}
+          )) : <EmptyState text="Nenhuma disciplina ainda. Gere um plano ou cadastre uma disciplina manualmente." />}
         </div>
       </section>
 
@@ -689,7 +595,7 @@ function Sessions({ subjects, sessions, setSessions }: { subjects: Subject[]; se
             </label>
             <label>
               Disciplina
-              <select name="subject">{subjects.map((subject) => <option key={subject.name}>{subject.name}</option>)}</select>
+              <select name="subject">{subjects.length ? subjects.map((subject) => <option key={subject.name}>{subject.name}</option>) : <option>Geral</option>}</select>
             </label>
           </div>
           <div className="form-row">
@@ -715,7 +621,9 @@ function Sessions({ subjects, sessions, setSessions }: { subjects: Subject[]; se
       </section>
       <section className="panel">
         <h2>Historico</h2>
-        <div className="stack-list">{sessions.map((session) => <div className="session-item" key={session.id}><strong>{session.subject}</strong><span>{formatMinutes(session.minutes)} | {session.questions} questoes</span></div>)}</div>
+        <div className="stack-list">
+          {sessions.length ? sessions.map((session) => <div className="session-item" key={session.id}><strong>{session.subject}</strong><span>{formatMinutes(session.minutes)} | {session.questions} questoes</span></div>) : <EmptyState text="Nenhuma sessao registrada ainda." />}
+        </div>
       </section>
     </div>
   );
@@ -798,6 +706,8 @@ function SubjectModal({
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const topicsText = String(form.get("topics") || "");
+    const questions = Number(form.get("questions") || 0);
+    const questionWeight = Number(form.get("questionWeight") || 0);
     const topics = topicsText
       .split("\n")
       .map((topic) => topic.trim())
@@ -805,8 +715,8 @@ function SubjectModal({
 
     onSave({
       name: String(form.get("name") || ""),
-      questions: Number(form.get("questions") || 0),
-      weight: Number(form.get("weight") || 0),
+      questions,
+      weight: questions * questionWeight,
       progress: Number(form.get("progress") || 0),
       color: String(form.get("color") || fallbackColor),
       topics: topics.length ? topics : ["Revisao geral"]
@@ -823,14 +733,15 @@ function SubjectModal({
         </label>
         <div className="form-row">
           <label>
-            Questoes
+            Numero de questoes
             <input name="questions" type="number" min="0" defaultValue={subject?.questions || 5} required />
           </label>
           <label>
-            Pontos
-            <input name="weight" type="number" min="0" step="0.5" defaultValue={subject?.weight || 10} required />
+            Peso por questao
+            <input name="questionWeight" type="number" min="0" step="0.1" defaultValue={formatWeight(subject || { questions: 5, weight: 10, name: "", topics: [], color: fallbackColor, progress: 0 })} required />
           </label>
         </div>
+        <div className="notice compact-notice">O total de pontos e calculado automaticamente: numero de questoes x peso por questao.</div>
         <label>
           Progresso (%)
           <input name="progress" type="number" min="0" max="100" defaultValue={subject?.progress || 0} required />
@@ -865,7 +776,7 @@ function StudySlot({ slot }: { slot: ScheduleItem }) {
     <article className="session-item">
       <div>
         <strong>{slot.period} - {slot.subject}</strong>
-        <span>{slot.minutes / 60}h | {slot.topic}</span>
+        <span>{formatHours(slot.minutes)} | {slot.topic}</span>
       </div>
       <span className="status-pill">{slot.kind === "questoes" ? "Questoes" : "Teoria"}</span>
     </article>
@@ -893,17 +804,17 @@ function SubjectRow({ subject, sessions }: { subject: Subject; sessions: Session
   );
 }
 
-function DayCard({ day }: { day: ScheduleItem[] }) {
+function DayCard({ day, color }: { day: ScheduleItem[]; color: string }) {
   return (
     <article className="calendar-card day-plan">
-      <div className="calendar-head">
+      <div className="calendar-head" style={{ background: color }}>
         <strong>{formatDate(day[0].date)}</strong>
         <span>{day[0].weekday}</span>
       </div>
       <div className="calendar-body">
         {day.map((slot) => (
           <div className="study-slot" key={`${slot.date}-${slot.period}`}>
-            <div className="slot-time">{slot.period}<span>{slot.minutes / 60}h</span></div>
+            <div className="slot-time">{slot.period}<span>{formatHours(slot.minutes)}</span></div>
             <div><strong>{slot.subject}</strong><p>{slot.topic}</p><span className="mini-meta">{slot.kind}</span></div>
           </div>
         ))}
@@ -912,10 +823,29 @@ function DayCard({ day }: { day: ScheduleItem[] }) {
   );
 }
 
+function EmptyPanel({ title, text }: { title: string; text: string }) {
+  return (
+    <section className="panel">
+      <h2>{title}</h2>
+      <EmptyState text={text} />
+    </section>
+  );
+}
+
+function EmptyState({ text }: { text: string }) {
+  return <div className="empty-state">{text}</div>;
+}
+
 function formatMinutes(totalMinutes: number) {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   return `${hours}h ${String(minutes).padStart(2, "0")}min`;
+}
+
+function formatHours(totalMinutes: number) {
+  const value = totalMinutes / 60;
+  const formatted = Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+  return `${formatted}h`;
 }
 
 function formatDate(value: string) {

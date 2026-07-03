@@ -855,6 +855,21 @@ textarea {
   color: #0f6848;
 }
 
+.compact-notice {
+  padding: 8px 10px;
+  font-size: 0.82rem;
+}
+
+.empty-state {
+  border: 1px dashed #c6d1e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: var(--muted);
+  padding: 16px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 .price {
   display: block;
   margin: 16px 0;
