@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabaseClient } from "@/lib/supabase";
 
 type Mode = "signin" | "signup";
+
+const savedEmailKey = "planotracker:last-email";
 
 export function LoginForm() {
   const router = useRouter();
@@ -14,10 +16,20 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
+  useEffect(() => {
+    const savedEmail = window.localStorage.getItem(savedEmailKey);
+    if (savedEmail) setEmail(savedEmail);
+  }, []);
+
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
     setMessage("");
+
+    const normalizedEmail = email.trim().toLowerCase();
+    if (normalizedEmail) {
+      window.localStorage.setItem(savedEmailKey, normalizedEmail);
+    }
 
     const supabase = createBrowserSupabaseClient();
     if (!supabase) {
@@ -28,8 +40,8 @@ export function LoginForm() {
 
     const result =
       mode === "signin"
-        ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password });
+        ? await supabase.auth.signInWithPassword({ email: normalizedEmail, password })
+        : await supabase.auth.signUp({ email: normalizedEmail, password });
 
     if (result.error) {
       setLoading(false);
@@ -74,7 +86,14 @@ export function LoginForm() {
 
       <label className="field">
         E-mail
-        <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="você@email.com" required />
+        <input
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder="você@email.com"
+          autoComplete="email"
+          required
+        />
       </label>
       <label className="field">
         Senha
@@ -83,6 +102,7 @@ export function LoginForm() {
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           placeholder="********"
+          autoComplete={mode === "signin" ? "current-password" : "new-password"}
           minLength={6}
           required
         />
