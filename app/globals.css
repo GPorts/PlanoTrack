@@ -1020,6 +1020,44 @@ textarea {
   margin-top: 6px;
 }
 
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+  padding: 6px;
+}
+
+.auth-tabs button {
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  padding: 10px;
+  font-weight: 900;
+}
+
+.auth-tabs button.active {
+  background: #ffffff;
+  color: var(--text);
+  box-shadow: 0 8px 18px rgba(20, 31, 55, 0.08);
+}
+
+.access-card {
+  display: grid;
+  gap: 14px;
+  max-width: 680px;
+  margin: 8vh auto;
+}
+
+.access-card h1 {
+  margin-bottom: 0;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1;
+}
+
 .sales-page {
   min-height: 100vh;
   background: #f5f7fb;

@@ -1,5 +1,5 @@
-import { PlanoTrackApp } from "../plano-track-app";
+import { AppGate } from "./app-gate";
 
 export default function AppPage() {
-  return <PlanoTrackApp />;
+  return <AppGate />;
 }
