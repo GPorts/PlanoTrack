@@ -39,10 +39,21 @@ export async function upsertSubscription(params: {
   };
 
   if (params.providerSubscriptionId) {
-    const { error } = await supabase
+    const { data: existing, error: selectError } = await supabase
       .from("subscriptions")
-      .upsert(payload, { onConflict: "provider_subscription_id" });
-    if (error) throw error;
+      .select("id")
+      .eq("provider_subscription_id", params.providerSubscriptionId)
+      .maybeSingle();
+
+    if (selectError) throw selectError;
+
+    if (existing?.id) {
+      const { error } = await supabase.from("subscriptions").update(payload).eq("id", existing.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from("subscriptions").insert(payload);
+      if (error) throw error;
+    }
   } else {
     const { error } = await supabase.from("subscriptions").insert(payload);
     if (error) throw error;

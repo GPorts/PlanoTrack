@@ -2,6 +2,9 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import {
   billingCycleFromPayload,
+  currentPeriodEndFromPayload,
+  currentPeriodStartFromPayload,
+  customerEmailFromPayload,
   getPayloadData,
   normalizedSubscriptionStatus,
   payloadsFromCaktoWebhook,
@@ -31,24 +34,36 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Assinatura invalida." }, { status: 401 });
   }
 
-  const result = await Promise.all(
-    payloadsFromCaktoWebhook(payload).map((item) => {
-      const data = getPayloadData(item);
+  try {
+    const result = await Promise.all(
+      payloadsFromCaktoWebhook(payload).map((item) => {
+        const data = getPayloadData(item);
 
-      return upsertSubscription({
-        userId: data?.metadata?.user_id,
-        email: data?.customer?.email,
-        providerSubscriptionId: subscriptionIdFromPayload(item),
-        providerCustomerId: data?.customer_id,
-        planCode: planCodeFromPayload(item),
-        billingCycle: billingCycleFromPayload(item),
-        status: normalizedSubscriptionStatus(item),
-        currentPeriodStart: data?.current_period_start || null,
-        currentPeriodEnd: data?.current_period_end || null,
-        rawPayload: item
-      });
-    })
-  );
+        return upsertSubscription({
+          userId: data?.metadata?.user_id,
+          email: customerEmailFromPayload(item),
+          providerSubscriptionId: subscriptionIdFromPayload(item),
+          providerCustomerId: data?.customer_id,
+          planCode: planCodeFromPayload(item),
+          billingCycle: billingCycleFromPayload(item),
+          status: normalizedSubscriptionStatus(item),
+          currentPeriodStart: currentPeriodStartFromPayload(item),
+          currentPeriodEnd: currentPeriodEndFromPayload(item),
+          rawPayload: item
+        });
+      })
+    );
 
-  return NextResponse.json({ ok: true, result });
+    return NextResponse.json({ ok: true, result });
+  } catch (error) {
+    console.error("Erro ao processar webhook da Cakto", error);
+
+    return NextResponse.json(
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Erro ao processar webhook."
+      },
+      { status: 500 }
+    );
+  }
 }

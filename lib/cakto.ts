@@ -30,6 +30,21 @@ export type CaktoWebhookData = {
     id?: string;
     name?: string;
   };
+  paidAt?: string;
+  createdAt?: string;
+  subscription?: {
+    id?: string;
+    status?: string;
+    createdAt?: string;
+    updatedAt?: string;
+    canceledAt?: string | null;
+    next_payment_date?: string;
+    recurrence_period?: number;
+    customer?: {
+      email?: string;
+      name?: string;
+    };
+  };
 };
 
 export function getCheckoutUrl(userId?: string) {
@@ -59,18 +74,34 @@ export function planCodeFromPayload(payload: CaktoWebhookPayload) {
 
 export function subscriptionIdFromPayload(payload: CaktoWebhookPayload) {
   const data = getPayloadData(payload);
-  return data?.subscription_id || data?.id || data?.refId;
+  return data?.subscription_id || data?.subscription?.id || data?.id || data?.refId;
 }
 
 export function normalizedSubscriptionStatus(payload: CaktoWebhookPayload) {
   const event = String(payload.event || payload.type || "").toLowerCase();
-  const status = String(getPayloadData(payload)?.status || "").toLowerCase();
+  const data = getPayloadData(payload);
+  const status = String(data?.subscription?.status || data?.status || "").toLowerCase();
 
   if (event.includes("cancel") || status.includes("cancel")) return "canceled";
   if (event.includes("refund") || status.includes("refund")) return "refunded";
   if (event.includes("refused") || status.includes("refused")) return "refused";
   if (event.includes("approved") || event.includes("renewed") || status === "paid" || status === "approved") return "active";
   return status || "pending";
+}
+
+export function customerEmailFromPayload(payload: CaktoWebhookPayload) {
+  const data = getPayloadData(payload);
+  return data?.customer?.email || data?.subscription?.customer?.email;
+}
+
+export function currentPeriodStartFromPayload(payload: CaktoWebhookPayload) {
+  const data = getPayloadData(payload);
+  return data?.current_period_start || data?.subscription?.createdAt || data?.paidAt || data?.createdAt || null;
+}
+
+export function currentPeriodEndFromPayload(payload: CaktoWebhookPayload) {
+  const data = getPayloadData(payload);
+  return data?.current_period_end || data?.subscription?.next_payment_date || null;
 }
 
 export function payloadsFromCaktoWebhook(payload: CaktoWebhookPayload) {
