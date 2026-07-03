@@ -2,7 +2,9 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import {
   billingCycleFromPayload,
+  getPayloadData,
   normalizedSubscriptionStatus,
+  payloadsFromCaktoWebhook,
   planCodeFromPayload,
   subscriptionIdFromPayload,
   verifyCaktoSignature,
@@ -18,10 +20,6 @@ export async function POST(request: Request) {
     headerStore.get("x-webhook-signature") ||
     headerStore.get("x-signature");
 
-  if (!verifyCaktoSignature(rawBody, signature)) {
-    return NextResponse.json({ error: "Assinatura invalida." }, { status: 401 });
-  }
-
   let payload: CaktoWebhookPayload;
   try {
     payload = JSON.parse(rawBody);
@@ -29,18 +27,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "JSON invalido." }, { status: 400 });
   }
 
-  const result = await upsertSubscription({
-    userId: payload.data?.metadata?.user_id,
-    email: payload.data?.customer?.email,
-    providerSubscriptionId: subscriptionIdFromPayload(payload),
-    providerCustomerId: payload.data?.customer_id,
-    planCode: planCodeFromPayload(payload),
-    billingCycle: billingCycleFromPayload(payload),
-    status: normalizedSubscriptionStatus(payload),
-    currentPeriodStart: payload.data?.current_period_start || null,
-    currentPeriodEnd: payload.data?.current_period_end || null,
-    rawPayload: payload
-  });
+  if (!verifyCaktoSignature(rawBody, signature, payload.secret)) {
+    return NextResponse.json({ error: "Assinatura invalida." }, { status: 401 });
+  }
+
+  const result = await Promise.all(
+    payloadsFromCaktoWebhook(payload).map((item) => {
+      const data = getPayloadData(item);
+
+      return upsertSubscription({
+        userId: data?.metadata?.user_id,
+        email: data?.customer?.email,
+        providerSubscriptionId: subscriptionIdFromPayload(item),
+        providerCustomerId: data?.customer_id,
+        planCode: planCodeFromPayload(item),
+        billingCycle: billingCycleFromPayload(item),
+        status: normalizedSubscriptionStatus(item),
+        currentPeriodStart: data?.current_period_start || null,
+        currentPeriodEnd: data?.current_period_end || null,
+        rawPayload: item
+      });
+    })
+  );
 
   return NextResponse.json({ ok: true, result });
 }
