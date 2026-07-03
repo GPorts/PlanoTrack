@@ -149,6 +149,7 @@ export function PlanoTrackApp() {
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [isSubjectModalOpen, setIsSubjectModalOpen] = useState(false);
+  const [lastPlanSource, setLastPlanSource] = useState<GeneratedPlan["source"]>();
 
   const stats = useMemo(() => {
     const minutes = sessions.reduce((sum, session) => sum + session.minutes, 0);
@@ -192,6 +193,7 @@ export function PlanoTrackApp() {
     setSubjects(mappedSubjects);
     setGoals(mappedGoals);
     setSchedule(plan.schedule);
+    setLastPlanSource(plan.source);
     setView("dashboard");
   }
 
@@ -266,7 +268,7 @@ export function PlanoTrackApp() {
         </header>
 
         {view === "dashboard" ? (
-          <Dashboard stats={stats} goals={goals} subjects={subjects} schedule={schedule} sessions={sessions} setView={setView} />
+          <Dashboard stats={stats} goals={goals} subjects={subjects} schedule={schedule} sessions={sessions} setView={setView} lastPlanSource={lastPlanSource} />
         ) : null}
         {view === "create" ? <CreatePlan onPlanGenerated={importGeneratedPlan} /> : null}
         {view === "calendar" ? <Calendar schedule={schedule} /> : null}
@@ -317,7 +319,8 @@ function Dashboard({
   subjects,
   schedule,
   sessions,
-  setView
+  setView,
+  lastPlanSource
 }: {
   stats: { minutes: number; questions: number; accuracy: number; doneGoals: number };
   goals: Goal[];
@@ -325,9 +328,18 @@ function Dashboard({
   schedule: ScheduleItem[];
   sessions: Session[];
   setView: (view: View) => void;
+  lastPlanSource?: GeneratedPlan["source"];
 }) {
   return (
     <>
+      {lastPlanSource ? (
+        <div className={`notice plan-source-notice ${lastPlanSource === "openai" ? "success-notice" : ""}`}>
+          {lastPlanSource === "openai"
+            ? "Ultimo plano criado com IA real."
+            : "Ultimo plano criado em modo demonstracao. Confira OPENAI_API_KEY e ENABLE_MOCK_AI na Vercel."}
+        </div>
+      ) : null}
+
       <div className="stats-grid">
         <Stat label="Horas estudadas" value={formatMinutes(stats.minutes)} />
         <Stat label="Questoes feitas" value={String(stats.questions)} />
@@ -362,7 +374,6 @@ function Dashboard({
 
 function CreatePlan({ onPlanGenerated }: { onPlanGenerated: (plan: GeneratedPlan) => void }) {
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState<"manual" | "ai">("ai");
   const [error, setError] = useState("");
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -375,20 +386,11 @@ function CreatePlan({ onPlanGenerated }: { onPlanGenerated: (plan: GeneratedPlan
       (day) => form.get(day) === "on"
     );
 
+    form.set("studyDays", days.join(","));
+
     const response = await fetch("/api/ai/generate-plan", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        mode,
-        routine: {
-          examName: form.get("examName"),
-          examDate: form.get("examDate"),
-          hoursPerDay: Number(form.get("hoursPerDay") || 6),
-          studyDays: days,
-          preferredBlocks: form.get("preferredBlocks")
-        },
-        editalText: form.get("editalText")
-      })
+      body: form
     });
 
     const data = await response.json();
@@ -429,11 +431,8 @@ function CreatePlan({ onPlanGenerated }: { onPlanGenerated: (plan: GeneratedPlan
             <input name="hoursPerDay" type="number" min="1" max="12" defaultValue="6" required />
           </label>
           <label>
-            Tipo de criacao
-            <select value={mode} onChange={(event) => setMode(event.target.value as "manual" | "ai")}>
-              <option value="ai">Gerar plano com IA</option>
-              <option value="manual">Criar estrutura manual gratis</option>
-            </select>
+            Edital em arquivo
+            <input name="editalFile" type="file" accept=".pdf,.txt,.md,.doc,.docx,application/pdf,text/plain" />
           </label>
         </div>
 
@@ -453,18 +452,14 @@ function CreatePlan({ onPlanGenerated }: { onPlanGenerated: (plan: GeneratedPlan
         </label>
         <label>
           Edital
-          <textarea name="editalText" placeholder="Cole aqui o conteudo programatico do edital..." />
+          <textarea name="editalText" placeholder="Cole aqui o conteudo programatico do edital ou anexe o PDF acima..." />
         </label>
 
-        {mode === "manual" ? (
-          <div className="notice">
-            Manual gratis cria a estrutura inicial. Com assinatura ativa, o usuario pode gerar planos ilimitados com IA.
-          </div>
-        ) : null}
+        <div className="notice">O PlanoTrack usa IA para ler o edital e monta o calendario completo ate a data da prova.</div>
         {error ? <div className="notice">{error}</div> : null}
 
         <button className="primary-button" type="submit" disabled={loading}>
-          {loading ? "Criando..." : mode === "ai" ? "Gerar plano com IA" : "Criar plano manual"}
+          {loading ? "Criando..." : "Gerar plano com IA"}
         </button>
       </form>
     </section>

@@ -1,4 +1,4 @@
-export type StudyMode = "manual" | "ai";
+export type StudyMode = "ai";
 
 export type SubjectInput = {
   name: string;
@@ -16,11 +16,18 @@ export type RoutineInput = {
 };
 
 export type StudyPlanRequest = {
-  mode: StudyMode;
+  mode?: StudyMode;
   routine: RoutineInput;
   editalText?: string;
+  editalFile?: {
+    name: string;
+    type: string;
+    data: string;
+  };
   subjects?: SubjectInput[];
 };
+
+export type PlanSource = "openai" | "rules";
 
 export type ScheduleItem = {
   date: string;
@@ -39,6 +46,7 @@ export type GeneratedPlan = {
   subjects: SubjectInput[];
   schedule: ScheduleItem[];
   recommendations: string[];
+  source?: PlanSource;
 };
 
 export type CreditBalance = {

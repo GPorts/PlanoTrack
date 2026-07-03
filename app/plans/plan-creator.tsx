@@ -8,7 +8,6 @@ import type { GeneratedPlan } from "@/lib/types";
 const weekdays = ["Segunda-feira", "Terca-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sabado"];
 
 export function PlanCreator() {
-  const [mode, setMode] = useState<"manual" | "ai">("manual");
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState<GeneratedPlan | null>(null);
   const [error, setError] = useState("");
@@ -20,21 +19,11 @@ export function PlanCreator() {
 
     const form = new FormData(event.currentTarget);
     const selectedDays = weekdays.filter((day) => form.get(day) === "on");
+    form.set("studyDays", selectedDays.join(","));
 
     const response = await fetch("/api/ai/generate-plan", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        mode,
-        routine: {
-          examName: form.get("examName"),
-          examDate: form.get("examDate"),
-          hoursPerDay: Number(form.get("hoursPerDay") || 2),
-          studyDays: selectedDays,
-          preferredBlocks: form.get("preferredBlocks")
-        },
-        editalText: form.get("editalText")
-      })
+      body: form
     });
 
     const data = await response.json();
@@ -68,11 +57,8 @@ export function PlanCreator() {
             <input name="hoursPerDay" type="number" min="1" max="12" defaultValue="6" required />
           </label>
           <label className="field">
-            Modo
-            <select value={mode} onChange={(event) => setMode(event.target.value as "manual" | "ai")}>
-              <option value="manual">Manual gratis</option>
-              <option value="ai">Gerar com IA - assinatura</option>
-            </select>
+            Edital em arquivo
+            <input name="editalFile" type="file" accept=".pdf,.txt,.md,.doc,.docx,application/pdf,text/plain" />
           </label>
         </div>
 
@@ -96,7 +82,7 @@ export function PlanCreator() {
 
         <label className="field">
           Texto do edital
-          <span>No MVP 0.1, cole o texto. Na 0.2 entra upload real de PDF.</span>
+          <span>Cole o texto ou anexe o PDF do edital acima.</span>
           <textarea
             name="editalText"
             placeholder="Cole aqui disciplinas, topicos e pesos do edital..."
@@ -104,11 +90,7 @@ export function PlanCreator() {
           />
         </label>
 
-        {mode === "ai" ? (
-          <div className="notice">
-            Gerar com IA exige assinatura ativa quando Supabase/Cakto estiverem ligados. Em demo, o mock fica liberado.
-          </div>
-        ) : null}
+        <div className="notice">A IA extrai o edital e o PlanoTrack monta o calendario completo ate a prova.</div>
 
         {error ? <div className="notice">{error}</div> : null}
 
@@ -124,8 +106,8 @@ export function PlanCreator() {
         <aside className="card">
           <h2>Como o MVP cobra</h2>
           <p className="muted">
-            Criacao manual fica gratis. Quando o usuario escolhe IA, o backend confere assinatura ativa no Supabase
-            antes de gerar.
+            A assinatura libera geracoes ilimitadas com IA. O app pode conferir assinatura ativa no Supabase antes de
+            gerar o plano.
           </p>
           <div className="notice" style={{ marginTop: 14 }}>
             Primeiro objetivo: validar se as pessoas pagam por um plano bem gerado a partir do edital.

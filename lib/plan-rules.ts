@@ -16,7 +16,8 @@ export function generateRuleBasedPlan(input: StudyPlanRequest): GeneratedPlan {
       "Priorize disciplinas com mais pontos e mais topicos pendentes.",
       "Reserve o bloco da noite para questoes, revisao e caderno de erros.",
       "Replaneje semanalmente quando houver atraso relevante."
-    ]
+    ],
+    source: "rules"
   };
 }
 
@@ -47,7 +48,7 @@ function buildSchedule(subjects: SubjectInput[], examDate: string, hoursPerDay: 
   const cursors = new Map<string, number>();
   const weightedSubjects = weightedQueue(subjects);
 
-  for (let date = start; date <= end && schedule.length < 180; date = addDays(date, 1)) {
+  for (let date = start; date <= end; date = addDays(date, 1)) {
     const weekday = weekdayNames[date.getDay()];
     if (studyDays.length && !studyDays.includes(weekday)) continue;
 

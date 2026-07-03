@@ -845,6 +845,16 @@ textarea {
   font-weight: 750;
 }
 
+.plan-source-notice {
+  margin-bottom: 14px;
+}
+
+.success-notice {
+  border-color: #b7e4cf;
+  background: #ecfdf5;
+  color: #0f6848;
+}
+
 .price {
   display: block;
   margin: 16px 0;

@@ -41,7 +41,7 @@ export default function DashboardPage() {
             <tbody>
               <tr>
                 <td>
-                  <FileText size={17} /> Manual gratis
+                  <FileText size={17} /> Upload de edital
                 </td>
                 <td>
                   <span className="pill">pronto</span>
@@ -60,7 +60,7 @@ export default function DashboardPage() {
                   <CalendarCheck size={17} /> Plano por IA
                 </td>
                 <td>
-                  <span className="pill pill-blue">mock</span>
+                  <span className="pill pill-blue">configurado</span>
                 </td>
               </tr>
             </tbody>

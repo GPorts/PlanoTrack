@@ -18,9 +18,9 @@ Copie `.env.example` para `.env.local` e preencha as chaves conforme for criando
 
 ## 3. OpenAI
 
-Preencha `OPENAI_API_KEY`.
+Preencha `OPENAI_API_KEY` e, se quiser manter o padrao do projeto, `OPENAI_MODEL=gpt-4.1-mini`.
 
-Enquanto `ENABLE_MOCK_AI=true`, a rota de IA usa o gerador local. Coloque `ENABLE_MOCK_AI=false` para chamar a API real.
+Em producao, deixe `ENABLE_MOCK_AI=false` para chamar a API real. Se `ENABLE_MOCK_AI=true` ou `OPENAI_API_KEY` estiver vazia, a rota usa o gerador local e nao gasta saldo da OpenAI.
 
 ## 4. Cakto
 
@@ -32,7 +32,7 @@ Enquanto `ENABLE_MOCK_AI=true`, a rota de IA usa o gerador local. Coloque `ENABL
 https://seu-dominio.com/api/cakto/webhook
 ```
 
-Eventos importantes: compra aprovada, assinatura criada, assinatura renovada, cancelamento e reembolso.
+Eventos importantes: compra aprovada, assinatura renovada, assinatura cancelada, reembolso e chargeback.
 
 Sugestao de metadata na Cakto:
 
@@ -44,6 +44,6 @@ user_id={{id do usuario no PlanoTrack}}
 
 ## 5. Modelo de MVP
 
-- Usuario sem assinatura pode testar telas/manual.
-- Assinatura ativa libera criacao ilimitada de planos.
+- Usuario sem assinatura nao acessa o app interno.
+- Assinatura ativa libera criacao ilimitada de planos com IA.
 - Mensal, trimestral e anual entregam os mesmos recursos; muda apenas o desconto.

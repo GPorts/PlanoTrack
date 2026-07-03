@@ -62,6 +62,6 @@ export const demoPlan: GeneratedPlan = {
   recommendations: [
     "Use IA apenas para gerar ou replanejar o plano; o acompanhamento diario nao precisa gastar tokens.",
     "Venda o MVP por assinatura: assinatura ativa libera planos ilimitados a partir de editais.",
-    "Permita criacao manual gratuita para aumentar aquisicao e mostrar valor antes da compra."
+    "Mostre claramente quando a geracao usou IA real para facilitar testes e suporte."
   ]
 };
