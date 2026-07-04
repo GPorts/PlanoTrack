@@ -49,6 +49,8 @@ create table if not exists public.subjects (
   name text not null,
   questions integer,
   weight numeric,
+  color text,
+  progress numeric not null default 0,
   created_at timestamptz not null default now()
 );
 
@@ -57,6 +59,7 @@ create table if not exists public.topics (
   subject_id uuid not null references public.subjects(id) on delete cascade,
   title text not null,
   status text not null default 'pending',
+  due_date date,
   position integer not null default 0,
   created_at timestamptz not null default now()
 );
@@ -80,6 +83,7 @@ create table if not exists public.study_sessions (
   plan_id uuid not null references public.study_plans(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
   schedule_item_id uuid references public.schedule_items(id) on delete set null,
+  subject_name text,
   minutes integer not null default 0,
   questions integer not null default 0,
   correct integer not null default 0,

@@ -8,14 +8,17 @@ import type { GeneratedPlan, ScheduleItem, SubjectInput } from "@/lib/types";
 type View = "dashboard" | "create" | "calendar" | "goals" | "subjects" | "sessions";
 
 type Subject = SubjectInput & {
+  id?: string;
   color: string;
   progress: number;
+  topicIds?: string[];
 };
 
 type Goal = {
   id: string;
   title: string;
   subject: string;
+  subjectId?: string;
   due: string;
   done: boolean;
 };
@@ -40,10 +43,13 @@ type StoredPlan = {
     name: string;
     questions: number | null;
     weight: number | null;
+    color: string | null;
+    progress: number | null;
     topics: Array<{
       id: string;
       title: string;
       status: string;
+      due_date: string | null;
       position: number;
     }>;
   }>;
@@ -55,6 +61,15 @@ type StoredPlan = {
     minutes: number;
     subject_name: string;
     topic_title: string;
+  }>;
+  study_sessions: Array<{
+    id: string;
+    studied_at: string;
+    subject_name: string | null;
+    minutes: number;
+    questions: number;
+    correct: number;
+    notes: string | null;
   }>;
 };
 
@@ -93,7 +108,7 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
       const { data, error } = await supabase
         .from("study_plans")
         .select(
-          "id,title,exam_date,summary,subjects(id,name,questions,weight,topics(id,title,status,position)),schedule_items(id,date,period,kind,minutes,subject_name,topic_title)"
+          "id,title,exam_date,summary,subjects(id,name,questions,weight,color,progress,topics(id,title,status,due_date,position)),schedule_items(id,date,period,kind,minutes,subject_name,topic_title),study_sessions(id,studied_at,subject_name,minutes,questions,correct,notes)"
         )
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
@@ -182,12 +197,14 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
   function importStoredPlan(plan: StoredPlan) {
     const sortedSubjects = [...(plan.subjects || [])].sort((a, b) => a.name.localeCompare(b.name));
     const mappedSubjects = sortedSubjects.map((subject, index) => ({
+      id: subject.id,
       name: subject.name,
       questions: subject.questions || 0,
       weight: Number(subject.weight || 0),
-      color: colors[index % colors.length],
-      progress: 0,
-      topics: [...(subject.topics || [])].sort((a, b) => a.position - b.position).map((topic) => topic.title)
+      color: subject.color || colors[index % colors.length],
+      progress: Number(subject.progress || calculateSubjectProgress(subject.topics || [])),
+      topics: [...(subject.topics || [])].sort((a, b) => a.position - b.position).map((topic) => topic.title),
+      topicIds: [...(subject.topics || [])].sort((a, b) => a.position - b.position).map((topic) => topic.id)
     }));
     const mappedGoals = sortedSubjects.flatMap((subject) =>
       [...(subject.topics || [])]
@@ -196,7 +213,8 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
           id: topic.id,
           title: topic.title,
           subject: subject.name,
-          due: plan.exam_date,
+          subjectId: subject.id,
+          due: topic.due_date || plan.exam_date,
           done: topic.status === "done"
         }))
     );
@@ -211,11 +229,23 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
         kind: item.kind,
         minutes: item.minutes
       }));
+    const mappedSessions = [...(plan.study_sessions || [])]
+      .sort((a, b) => String(b.studied_at).localeCompare(String(a.studied_at)))
+      .map((session) => ({
+        id: session.id,
+        date: session.studied_at,
+        subject: session.subject_name || "Geral",
+        minutes: session.minutes || 0,
+        questions: session.questions || 0,
+        correct: session.correct || 0,
+        notes: session.notes || ""
+      }));
 
     setCurrentPlanId(plan.id);
     setSubjects(mappedSubjects);
     setGoals(mappedGoals);
     setSchedule(mappedSchedule);
+    setSessions(mappedSessions);
   }
 
   async function saveGeneratedPlan(plan: GeneratedPlan) {
@@ -241,15 +271,20 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
 
     const planId = savedPlan.id as string;
     const subjectIdByName = new Map<string, string>();
+    const topicIdsBySubject = new Map<string, string[]>();
+    const generatedGoalIdMap = new Map<string, { id: string; subjectId: string }>();
 
-    for (const subject of plan.subjects) {
+    for (const [subjectIndex, subject] of plan.subjects.entries()) {
+      const color = colors[subjectIndex % colors.length];
       const { data: savedSubject, error: subjectError } = await supabase
         .from("subjects")
         .insert({
           plan_id: planId,
           name: subject.name,
           questions: subject.questions || 0,
-          weight: subject.weight || 0
+          weight: subject.weight || 0,
+          color,
+          progress: 0
         })
         .select("id")
         .single();
@@ -260,15 +295,24 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
       subjectIdByName.set(subject.name, subjectId);
 
       if (subject.topics.length) {
-        const { error: topicsError } = await supabase.from("topics").insert(
+        const { data: savedTopics, error: topicsError } = await supabase.from("topics").insert(
           subject.topics.map((topic, index) => ({
             subject_id: subjectId,
             title: topic,
+            due_date: plan.examDate,
             position: index
           }))
-        );
+        ).select("id,position");
 
         if (topicsError) throw topicsError;
+
+        const orderedTopicIds = [...(savedTopics || [])]
+          .sort((a, b) => Number(a.position) - Number(b.position))
+          .map((topic) => String(topic.id));
+        topicIdsBySubject.set(subject.name, orderedTopicIds);
+        orderedTopicIds.forEach((topicId, topicIndex) => {
+          generatedGoalIdMap.set(`generated-${subjectIndex}-${topicIndex}`, { id: topicId, subjectId });
+        });
       }
     }
 
@@ -289,6 +333,19 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
     }
 
     setCurrentPlanId(planId);
+    setSubjects((currentSubjects) =>
+      currentSubjects.map((subject) => ({
+        ...subject,
+        id: subjectIdByName.get(subject.name),
+        topicIds: topicIdsBySubject.get(subject.name) || subject.topicIds
+      }))
+    );
+    setGoals((currentGoals) =>
+      currentGoals.map((goal) => {
+        const savedGoal = generatedGoalIdMap.get(goal.id);
+        return savedGoal ? { ...goal, id: savedGoal.id, subjectId: savedGoal.subjectId } : goal;
+      })
+    );
     setStorageMessage("Plano salvo automaticamente.");
     window.setTimeout(() => setStorageMessage(""), 3000);
   }
@@ -299,12 +356,18 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
   }
 
   function saveGoal(goal: Goal) {
+    const subject = subjects.find((item) => item.name === goal.subject || item.id === goal.subjectId);
+    const goalToSave = { ...goal, subjectId: subject?.id || goal.subjectId };
+
     setGoals((currentGoals) => {
-      const exists = currentGoals.some((item) => item.id === goal.id);
-      return exists ? currentGoals.map((item) => (item.id === goal.id ? goal : item)) : [...currentGoals, goal];
+      const exists = currentGoals.some((item) => item.id === goalToSave.id);
+      return exists ? currentGoals.map((item) => (item.id === goalToSave.id ? goalToSave : item)) : [...currentGoals, goalToSave];
     });
     setIsGoalModalOpen(false);
     setEditingGoal(null);
+    persistGoal(goalToSave, subject).catch(() => {
+      setStorageMessage("Meta atualizada na tela, mas não foi possível salvar no Supabase.");
+    });
   }
 
   function openSubjectModal(subject?: Subject) {
@@ -313,12 +376,97 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
   }
 
   function saveSubject(subject: Subject) {
+    const subjectToSave = {
+      ...subject,
+      id: editingSubject?.id || subject.id || crypto.randomUUID(),
+      topicIds: subject.topics.map((_, index) => editingSubject?.topicIds?.[index] || crypto.randomUUID())
+    };
+
     setSubjects((currentSubjects) => {
       const exists = currentSubjects.some((item) => item.name === editingSubject?.name);
-      return exists ? currentSubjects.map((item) => (item.name === editingSubject?.name ? subject : item)) : [...currentSubjects, subject];
+      return exists ? currentSubjects.map((item) => (item.name === editingSubject?.name ? subjectToSave : item)) : [...currentSubjects, subjectToSave];
     });
+    if (editingSubject?.name && editingSubject.name !== subjectToSave.name) {
+      setGoals((currentGoals) =>
+        currentGoals.map((goal) => (goal.subject === editingSubject.name ? { ...goal, subject: subjectToSave.name, subjectId: subjectToSave.id } : goal))
+      );
+    }
     setIsSubjectModalOpen(false);
     setEditingSubject(null);
+    persistSubject(subjectToSave).catch(() => {
+      setStorageMessage("Disciplina atualizada na tela, mas não foi possível salvar no Supabase.");
+    });
+  }
+
+  async function persistGoal(goal: Goal, subject?: Subject) {
+    const supabase = createBrowserSupabaseClient();
+    const subjectId = goal.subjectId || subject?.id;
+    if (!supabase || !currentPlanId || !subjectId) return;
+
+    await supabase.from("topics").upsert({
+      id: goal.id,
+      subject_id: subjectId,
+      title: goal.title,
+      status: goal.done ? "done" : "pending",
+      due_date: goal.due,
+      position: Math.max(0, goals.findIndex((item) => item.id === goal.id))
+    });
+  }
+
+  async function deleteGoalFromStorage(goal: Goal) {
+    const supabase = createBrowserSupabaseClient();
+    if (!supabase || !currentPlanId) return;
+    await supabase.from("topics").delete().eq("id", goal.id);
+  }
+
+  async function persistSubject(subject: Subject) {
+    const supabase = createBrowserSupabaseClient();
+    if (!supabase || !currentPlanId || !subject.id) return;
+
+    await supabase.from("subjects").upsert({
+      id: subject.id,
+      plan_id: currentPlanId,
+      name: subject.name,
+      questions: subject.questions || 0,
+      weight: subject.weight || 0,
+      color: subject.color,
+      progress: subject.progress || 0
+    });
+
+    if (subject.topics.length) {
+      await supabase.from("topics").upsert(
+        subject.topics.map((topic, index) => ({
+          id: subject.topicIds?.[index] || crypto.randomUUID(),
+          subject_id: subject.id,
+          title: topic,
+          status: goals.find((goal) => goal.id === subject.topicIds?.[index])?.done ? "done" : "pending",
+          position: index
+        }))
+      );
+    }
+  }
+
+  async function deleteSubjectFromStorage(subject: Subject) {
+    const supabase = createBrowserSupabaseClient();
+    if (!supabase || !currentPlanId || !subject.id) return;
+    await supabase.from("subjects").delete().eq("id", subject.id);
+  }
+
+  async function persistSession(session: Session) {
+    const supabase = createBrowserSupabaseClient();
+    if (!supabase || !currentPlanId || !userId) return;
+
+    await supabase.from("study_sessions").insert({
+      id: session.id,
+      plan_id: currentPlanId,
+      user_id: userId,
+      studied_at: session.date,
+      subject_name: session.subject,
+      minutes: session.minutes,
+      questions: session.questions,
+      correct: session.correct,
+      notes: session.notes
+    });
   }
 
   return (
@@ -379,9 +527,9 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
         ) : null}
         {view === "create" ? <CreatePlan onPlanGenerated={importGeneratedPlan} /> : null}
         {view === "calendar" ? <Calendar schedule={schedule} /> : null}
-        {view === "goals" ? <Goals goals={goals} setGoals={setGoals} openGoalModal={openGoalModal} /> : null}
-        {view === "subjects" ? <Subjects subjects={subjects} setSubjects={setSubjects} openSubjectModal={openSubjectModal} /> : null}
-        {view === "sessions" ? <Sessions subjects={subjects} sessions={sessions} setSessions={setSessions} /> : null}
+        {view === "goals" ? <Goals goals={goals} setGoals={setGoals} openGoalModal={openGoalModal} onPersistGoal={persistGoal} onDeleteGoal={deleteGoalFromStorage} /> : null}
+        {view === "subjects" ? <Subjects subjects={subjects} setSubjects={setSubjects} openSubjectModal={openSubjectModal} onDeleteSubject={deleteSubjectFromStorage} /> : null}
+        {view === "sessions" ? <Sessions subjects={subjects} sessions={sessions} setSessions={setSessions} onPersistSession={persistSession} /> : null}
       </main>
 
       {isGoalModalOpen ? (
@@ -441,6 +589,8 @@ function Dashboard({
   storageMessage: string;
   isLoadingPlan: boolean;
 }) {
+  const todaySchedule = schedule.filter((slot) => slot.date === todayIso());
+
   return (
     <>
       {isLoadingPlan ? <div className="notice plan-source-notice">Carregando seu último plano salvo...</div> : null}
@@ -469,7 +619,13 @@ function Dashboard({
             </button>
           </div>
           <div className="stack-list">
-            {schedule.length ? schedule.slice(0, 3).map((slot, index) => <StudySlot key={index} slot={slot} />) : <EmptyState text="Crie seu primeiro plano para preencher o foco de hoje." />}
+            {todaySchedule.length ? (
+              todaySchedule.map((slot, index) => <StudySlot key={`${slot.date}-${slot.period}-${index}`} slot={slot} />)
+            ) : schedule.length ? (
+              <EmptyState text="Nenhum estudo marcado para hoje. Veja o calendário para conferir os próximos dias." />
+            ) : (
+              <EmptyState text="Crie seu primeiro plano para preencher o foco de hoje." />
+            )}
           </div>
         </section>
 
@@ -602,17 +758,22 @@ function Calendar({ schedule }: { schedule: ScheduleItem[] }) {
 function Goals({
   goals,
   setGoals,
-  openGoalModal
+  openGoalModal,
+  onPersistGoal,
+  onDeleteGoal
 }: {
   goals: Goal[];
   setGoals: (goals: Goal[]) => void;
   openGoalModal: (goal?: Goal) => void;
+  onPersistGoal: (goal: Goal) => Promise<void>;
+  onDeleteGoal: (goal: Goal) => Promise<void>;
 }) {
   const [goalToDelete, setGoalToDelete] = useState<Goal | null>(null);
 
   function deleteGoal(goal: Goal) {
     setGoals(goals.filter((item) => item.id !== goal.id));
     setGoalToDelete(null);
+    onDeleteGoal(goal).catch(() => undefined);
   }
 
   return (
@@ -640,7 +801,11 @@ function Goals({
                   className="icon-button"
                   type="button"
                   title="Alternar status"
-                  onClick={() => setGoals(goals.map((item) => (item.id === goal.id ? { ...item, done: !item.done } : item)))}
+                  onClick={() => {
+                    const updatedGoal = { ...goal, done: !goal.done };
+                    setGoals(goals.map((item) => (item.id === goal.id ? updatedGoal : item)));
+                    onPersistGoal(updatedGoal).catch(() => undefined);
+                  }}
                 >
                   OK
                 </button>
@@ -673,17 +838,20 @@ function Goals({
 function Subjects({
   subjects,
   setSubjects,
-  openSubjectModal
+  openSubjectModal,
+  onDeleteSubject
 }: {
   subjects: Subject[];
   setSubjects: (subjects: Subject[]) => void;
   openSubjectModal: (subject?: Subject) => void;
+  onDeleteSubject: (subject: Subject) => Promise<void>;
 }) {
   const [subjectToDelete, setSubjectToDelete] = useState<Subject | null>(null);
 
   function deleteSubject(subject: Subject) {
     setSubjects(subjects.filter((item) => item.name !== subject.name));
     setSubjectToDelete(null);
+    onDeleteSubject(subject).catch(() => undefined);
   }
 
   return (
@@ -777,22 +945,31 @@ function ConfirmModal({
   );
 }
 
-function Sessions({ subjects, sessions, setSessions }: { subjects: Subject[]; sessions: Session[]; setSessions: (sessions: Session[]) => void }) {
+function Sessions({
+  subjects,
+  sessions,
+  setSessions,
+  onPersistSession
+}: {
+  subjects: Subject[];
+  sessions: Session[];
+  setSessions: (sessions: Session[]) => void;
+  onPersistSession: (session: Session) => Promise<void>;
+}) {
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    setSessions([
-      ...sessions,
-      {
-        id: crypto.randomUUID(),
-        date: String(form.get("date")),
-        subject: String(form.get("subject")),
-        minutes: Number(form.get("minutes")),
-        questions: Number(form.get("questions")),
-        correct: Number(form.get("correct")),
-        notes: String(form.get("notes") || "")
-      }
-    ]);
+    const session = {
+      id: crypto.randomUUID(),
+      date: String(form.get("date")),
+      subject: String(form.get("subject")),
+      minutes: Number(form.get("minutes")),
+      questions: Number(form.get("questions")),
+      correct: Number(form.get("correct")),
+      notes: String(form.get("notes") || "")
+    };
+    setSessions([session, ...sessions]);
+    onPersistSession(session).catch(() => undefined);
     event.currentTarget.reset();
   }
 
@@ -806,7 +983,7 @@ function Sessions({ subjects, sessions, setSessions }: { subjects: Subject[]; se
           <div className="form-row">
             <label>
               Data
-              <input name="date" type="date" required />
+              <input name="date" type="date" defaultValue={todayIso()} required />
             </label>
             <label>
               Disciplina
@@ -1074,6 +1251,20 @@ function weekdayFromIso(value: string) {
   const date = new Date(year, month - 1, day);
   const names = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
   return names[date.getDay()] || "";
+}
+
+function todayIso() {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function calculateSubjectProgress(topics: Array<{ status: string }>) {
+  if (!topics.length) return 0;
+  const done = topics.filter((topic) => topic.status === "done").length;
+  return Math.round((done / topics.length) * 100);
 }
 
 function periodOrder(period: ScheduleItem["period"]) {
