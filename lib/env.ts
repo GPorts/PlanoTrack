@@ -7,5 +7,5 @@ export function isConfigured(names: string[]) {
 }
 
 export function isMockAiEnabled() {
-  return process.env.ENABLE_MOCK_AI !== "false";
+  return process.env.ENABLE_MOCK_AI === "true";
 }

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { LoginForm } from "./login-form";
 
 export default function LoginPage() {
@@ -9,6 +10,11 @@ export default function LoginPage() {
           <strong>PlanoTracker</strong>
         </div>
         <LoginForm />
+        <nav className="login-links" aria-label="Links institucionais">
+          <Link href="/">Página inicial</Link>
+          <Link href="/termos">Termos de uso</Link>
+          <Link href="/privacidade">Privacidade</Link>
+        </nav>
       </section>
     </main>
   );

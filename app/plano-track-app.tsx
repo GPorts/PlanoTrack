@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, ClipboardList, LayoutDashboard, ListChecks, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
+import { CalendarDays, ClipboardList, LayoutDashboard, ListChecks, LogOut, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { createBrowserSupabaseClient } from "@/lib/supabase";
 import type { GeneratedPlan, ScheduleItem, SubjectInput } from "@/lib/types";
 
@@ -73,6 +73,16 @@ type StoredPlan = {
   }>;
 };
 
+type PlanOption = {
+  id: string;
+  title: string;
+  exam_date: string;
+  created_at: string;
+};
+
+const storedPlanSelect =
+  "id,title,exam_date,summary,subjects(id,name,questions,weight,color,progress,topics(id,title,status,due_date,position)),schedule_items(id,date,period,kind,minutes,subject_name,topic_title),study_sessions(id,studied_at,subject_name,minutes,questions,correct,notes)";
+
 const colors = ["#176b5f", "#2563eb", "#149b7e", "#0f766e", "#d97706", "#0891b2", "#2f6f43", "#4f46e5", "#15803d", "#64748b"];
 const calendarColors = ["#176b5f", "#2458a6", "#0f766e", "#6d3fb6", "#2f6f43", "#0e7490", "#8a5a12"];
 const initialSubjects: Subject[] = [];
@@ -91,6 +101,7 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
   const [isSubjectModalOpen, setIsSubjectModalOpen] = useState(false);
   const [lastPlanSource, setLastPlanSource] = useState<GeneratedPlan["source"]>();
   const [currentPlanId, setCurrentPlanId] = useState("");
+  const [planOptions, setPlanOptions] = useState<PlanOption[]>([]);
   const [storageMessage, setStorageMessage] = useState("");
   const [isLoadingPlan, setIsLoadingPlan] = useState(true);
 
@@ -105,15 +116,35 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
         return;
       }
 
+      const { data: options, error: optionsError } = await supabase
+        .from("study_plans")
+        .select("id,title,exam_date,created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+      if (optionsError) {
+        if (active) {
+          setStorageMessage("Não foi possível carregar seus planos salvos.");
+          setIsLoadingPlan(false);
+        }
+        return;
+      }
+
+      if (!active) return;
+      setPlanOptions((options || []) as PlanOption[]);
+
+      const latestId = options?.[0]?.id;
+      if (!latestId) {
+        setIsLoadingPlan(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("study_plans")
-        .select(
-          "id,title,exam_date,summary,subjects(id,name,questions,weight,color,progress,topics(id,title,status,due_date,position)),schedule_items(id,date,period,kind,minutes,subject_name,topic_title),study_sessions(id,studied_at,subject_name,minutes,questions,correct,notes)"
-        )
+        .select(storedPlanSelect)
         .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .eq("id", latestId)
+        .single();
 
       if (!active) return;
 
@@ -136,6 +167,36 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
       active = false;
     };
   }, [userId]);
+
+  async function selectStoredPlan(planId: string) {
+    const supabase = createBrowserSupabaseClient();
+    if (!supabase || !userId || planId === currentPlanId) return;
+
+    setIsLoadingPlan(true);
+    setStorageMessage("Carregando plano...");
+    const { data, error } = await supabase
+      .from("study_plans")
+      .select(storedPlanSelect)
+      .eq("user_id", userId)
+      .eq("id", planId)
+      .single();
+
+    if (error || !data) {
+      setStorageMessage("Não foi possível carregar o plano selecionado.");
+      setIsLoadingPlan(false);
+      return;
+    }
+
+    importStoredPlan(data as StoredPlan);
+    setStorageMessage("");
+    setIsLoadingPlan(false);
+  }
+
+  async function signOut() {
+    const supabase = createBrowserSupabaseClient();
+    await supabase?.auth.signOut();
+    window.location.assign("/login");
+  }
 
   const stats = useMemo(() => {
     const minutes = sessions.reduce((sum, session) => sum + session.minutes, 0);
@@ -181,6 +242,8 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
     setSubjects(mappedSubjects);
     setGoals(mappedGoals);
     setSchedule(plan.schedule);
+    setSessions([]);
+    setCurrentPlanId("");
     setLastPlanSource(plan.source);
     setView("dashboard");
 
@@ -337,6 +400,10 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
     }
 
     setCurrentPlanId(planId);
+    setPlanOptions((current) => [
+      { id: planId, title: plan.title, exam_date: plan.examDate, created_at: new Date().toISOString() },
+      ...current.filter((item) => item.id !== planId)
+    ]);
     setSubjects((currentSubjects) =>
       currentSubjects.map((subject) => ({
         ...subject,
@@ -394,10 +461,12 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
       setGoals((currentGoals) =>
         currentGoals.map((goal) => (goal.subject === editingSubject.name ? { ...goal, subject: subjectToSave.name, subjectId: subjectToSave.id } : goal))
       );
+      setSchedule((current) => current.map((item) => (item.subject === editingSubject.name ? { ...item, subject: subjectToSave.name } : item)));
+      setSessions((current) => current.map((item) => (item.subject === editingSubject.name ? { ...item, subject: subjectToSave.name } : item)));
     }
     setIsSubjectModalOpen(false);
     setEditingSubject(null);
-    persistSubject(subjectToSave).catch(() => {
+    persistSubject(subjectToSave, editingSubject?.name).catch(() => {
       setStorageMessage("Disciplina atualizada na tela, mas não foi possível salvar no Supabase.");
     });
   }
@@ -407,7 +476,7 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
     const subjectId = goal.subjectId || subject?.id;
     if (!supabase || !currentPlanId || !subjectId) return;
 
-    await supabase.from("topics").upsert({
+    const { error } = await supabase.from("topics").upsert({
       id: goal.id,
       subject_id: subjectId,
       title: goal.title,
@@ -415,19 +484,21 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
       due_date: goal.due,
       position: Math.max(0, goals.findIndex((item) => item.id === goal.id))
     });
+    if (error) throw error;
   }
 
   async function deleteGoalFromStorage(goal: Goal) {
     const supabase = createBrowserSupabaseClient();
     if (!supabase || !currentPlanId) return;
-    await supabase.from("topics").delete().eq("id", goal.id);
+    const { error } = await supabase.from("topics").delete().eq("id", goal.id);
+    if (error) throw error;
   }
 
-  async function persistSubject(subject: Subject) {
+  async function persistSubject(subject: Subject, previousName?: string) {
     const supabase = createBrowserSupabaseClient();
     if (!supabase || !currentPlanId || !subject.id) return;
 
-    await supabase.from("subjects").upsert({
+    const { error: subjectError } = await supabase.from("subjects").upsert({
       id: subject.id,
       plan_id: currentPlanId,
       name: subject.name,
@@ -436,9 +507,10 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
       color: subject.color,
       progress: subject.progress || 0
     });
+    if (subjectError) throw subjectError;
 
     if (subject.topics.length) {
-      await supabase.from("topics").upsert(
+      const { error: topicsError } = await supabase.from("topics").upsert(
         subject.topics.map((topic, index) => ({
           id: subject.topicIds?.[index] || crypto.randomUUID(),
           subject_id: subject.id,
@@ -447,13 +519,49 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
           position: index
         }))
       );
+      if (topicsError) throw topicsError;
+    }
+
+    const { data: storedTopics, error: storedTopicsError } = await supabase.from("topics").select("id").eq("subject_id", subject.id);
+    if (storedTopicsError) throw storedTopicsError;
+    const keptTopicIds = new Set(subject.topicIds || []);
+    const staleTopicIds = (storedTopics || []).map((topic) => String(topic.id)).filter((id) => !keptTopicIds.has(id));
+    if (staleTopicIds.length) {
+      const { error: staleTopicsError } = await supabase.from("topics").delete().in("id", staleTopicIds);
+      if (staleTopicsError) throw staleTopicsError;
+    }
+
+    if (previousName && previousName !== subject.name) {
+      const { error: scheduleError } = await supabase
+        .from("schedule_items")
+        .update({ subject_name: subject.name })
+        .eq("plan_id", currentPlanId)
+        .eq("subject_name", previousName);
+      if (scheduleError) throw scheduleError;
+
+      const { error: sessionsError } = await supabase
+        .from("study_sessions")
+        .update({ subject_name: subject.name })
+        .eq("plan_id", currentPlanId)
+        .eq("subject_name", previousName);
+      if (sessionsError) throw sessionsError;
     }
   }
 
   async function deleteSubjectFromStorage(subject: Subject) {
     const supabase = createBrowserSupabaseClient();
     if (!supabase || !currentPlanId || !subject.id) return;
-    await supabase.from("subjects").delete().eq("id", subject.id);
+    const { error: scheduleError } = await supabase
+      .from("schedule_items")
+      .delete()
+      .eq("plan_id", currentPlanId)
+      .eq("subject_name", subject.name);
+    if (scheduleError) throw scheduleError;
+
+    const { error } = await supabase.from("subjects").delete().eq("id", subject.id);
+    if (error) throw error;
+    setGoals((current) => current.filter((goal) => goal.subject !== subject.name));
+    setSchedule((current) => current.filter((item) => item.subject !== subject.name));
   }
 
   async function persistSession(session: Session) {
@@ -554,8 +662,26 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
             {currentPlanId ? <p className="mini-meta">Plano salvo</p> : null}
           </div>
           <div className="top-actions">
+            {planOptions.length ? (
+              <select
+                className="plan-selector"
+                aria-label="Plano ativo"
+                value={currentPlanId}
+                onChange={(event) => selectStoredPlan(event.target.value)}
+                disabled={isLoadingPlan}
+              >
+                {planOptions.map((plan) => (
+                  <option key={plan.id} value={plan.id}>
+                    {plan.title} - {formatDate(plan.exam_date)}
+                  </option>
+                ))}
+              </select>
+            ) : null}
             <button className="primary-button" type="button" onClick={() => setView("sessions")}>
               Nova sessão
+            </button>
+            <button className="ghost-button" type="button" onClick={signOut} title="Sair da conta">
+              <LogOut size={17} /> Sair
             </button>
           </div>
         </header>
@@ -575,8 +701,8 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
         ) : null}
         {view === "create" ? <CreatePlan onPlanGenerated={importGeneratedPlan} /> : null}
         {view === "calendar" ? <Calendar schedule={schedule} subjects={subjects} onSaveDay={persistScheduleDay} /> : null}
-        {view === "goals" ? <Goals goals={goals} setGoals={setGoals} openGoalModal={openGoalModal} onPersistGoal={persistGoal} onDeleteGoal={deleteGoalFromStorage} /> : null}
-        {view === "subjects" ? <Subjects subjects={subjects} setSubjects={setSubjects} openSubjectModal={openSubjectModal} onDeleteSubject={deleteSubjectFromStorage} /> : null}
+        {view === "goals" ? <Goals goals={goals} setGoals={setGoals} openGoalModal={openGoalModal} onPersistGoal={persistGoal} onDeleteGoal={deleteGoalFromStorage} onStorageError={setStorageMessage} /> : null}
+        {view === "subjects" ? <Subjects subjects={subjects} setSubjects={setSubjects} openSubjectModal={openSubjectModal} onDeleteSubject={deleteSubjectFromStorage} onStorageError={setStorageMessage} /> : null}
         {view === "sessions" ? <Sessions subjects={subjects} sessions={sessions} setSessions={setSessions} onPersistSession={persistSession} /> : null}
       </main>
 
@@ -709,8 +835,23 @@ function CreatePlan({ onPlanGenerated }: { onPlanGenerated: (plan: GeneratedPlan
 
     form.set("studyDays", days.join(","));
 
+    if (!days.length) {
+      setLoading(false);
+      setError("Selecione pelo menos um dia de estudo.");
+      return;
+    }
+
+    const supabase = createBrowserSupabaseClient();
+    const session = supabase ? (await supabase.auth.getSession()).data.session : null;
+    if (!session?.access_token) {
+      setLoading(false);
+      setError("Sua sessão expirou. Entre novamente para criar o plano.");
+      return;
+    }
+
     const response = await fetch("/api/ai/generate-plan", {
       method: "POST",
+      headers: { Authorization: `Bearer ${session.access_token}` },
       body: form
     });
 
@@ -743,7 +884,7 @@ function CreatePlan({ onPlanGenerated }: { onPlanGenerated: (plan: GeneratedPlan
           </label>
           <label>
             Data da prova
-            <input name="examDate" type="date" required />
+            <input name="examDate" type="date" min={todayIso()} required />
           </label>
         </div>
         <div className="form-row">
@@ -753,7 +894,7 @@ function CreatePlan({ onPlanGenerated }: { onPlanGenerated: (plan: GeneratedPlan
           </label>
           <label>
             Edital em arquivo
-            <input name="editalFile" type="file" accept=".pdf,.txt,.md,.doc,.docx,application/pdf,text/plain" />
+            <input name="editalFile" type="file" accept=".pdf,.txt,.md,application/pdf,text/plain,text/markdown" />
           </label>
         </div>
 
@@ -849,20 +990,22 @@ function Goals({
   setGoals,
   openGoalModal,
   onPersistGoal,
-  onDeleteGoal
+  onDeleteGoal,
+  onStorageError
 }: {
   goals: Goal[];
   setGoals: (goals: Goal[]) => void;
   openGoalModal: (goal?: Goal) => void;
   onPersistGoal: (goal: Goal) => Promise<void>;
   onDeleteGoal: (goal: Goal) => Promise<void>;
+  onStorageError: (message: string) => void;
 }) {
   const [goalToDelete, setGoalToDelete] = useState<Goal | null>(null);
 
   function deleteGoal(goal: Goal) {
     setGoals(goals.filter((item) => item.id !== goal.id));
     setGoalToDelete(null);
-    onDeleteGoal(goal).catch(() => undefined);
+    onDeleteGoal(goal).catch(() => onStorageError("A meta saiu da tela, mas não foi possível excluí-la do Supabase."));
   }
 
   return (
@@ -893,7 +1036,7 @@ function Goals({
                   onClick={() => {
                     const updatedGoal = { ...goal, done: !goal.done };
                     setGoals(goals.map((item) => (item.id === goal.id ? updatedGoal : item)));
-                    onPersistGoal(updatedGoal).catch(() => undefined);
+                    onPersistGoal(updatedGoal).catch(() => onStorageError("O status mudou na tela, mas não foi possível salvá-lo no Supabase."));
                   }}
                 >
                   OK
@@ -928,19 +1071,21 @@ function Subjects({
   subjects,
   setSubjects,
   openSubjectModal,
-  onDeleteSubject
+  onDeleteSubject,
+  onStorageError
 }: {
   subjects: Subject[];
   setSubjects: (subjects: Subject[]) => void;
   openSubjectModal: (subject?: Subject) => void;
   onDeleteSubject: (subject: Subject) => Promise<void>;
+  onStorageError: (message: string) => void;
 }) {
   const [subjectToDelete, setSubjectToDelete] = useState<Subject | null>(null);
 
   function deleteSubject(subject: Subject) {
     setSubjects(subjects.filter((item) => item.name !== subject.name));
     setSubjectToDelete(null);
-    onDeleteSubject(subject).catch(() => undefined);
+    onDeleteSubject(subject).catch(() => onStorageError("A disciplina saiu da tela, mas não foi possível excluí-la do Supabase."));
   }
 
   return (

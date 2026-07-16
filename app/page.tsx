@@ -416,6 +416,9 @@ export default function HomePage() {
           <Link href="/login">Entrar</Link>
           <a href="#pricing">Planos</a>
           <a href="#faq">FAQ</a>
+          <Link href="/termos">Termos</Link>
+          <Link href="/privacidade">Privacidade</Link>
+          <a href="mailto:gustavorossiniports@gmail.com">Suporte</a>
         </nav>
       </footer>
     </main>

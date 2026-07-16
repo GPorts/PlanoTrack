@@ -16,10 +16,11 @@ export async function linkSubscriptionToUser(userId: string, email: string) {
   const supabase = createAdminSupabaseClient();
   if (!supabase) return 0;
 
-  await supabase.from("profiles").upsert({
+  const { error: profileError } = await supabase.from("profiles").upsert({
     id: userId,
     email
   });
+  if (profileError) throw profileError;
 
   const { data, error } = await supabase
     .from("subscriptions")
@@ -38,13 +39,18 @@ export async function userHasActiveSubscription(userId: string) {
 
   const { data, error } = await supabase
     .from("subscriptions")
-    .select("id")
+    .select("id,status,current_period_end")
     .eq("user_id", userId)
-    .in("status", ["active", "paid", "trialing"])
-    .or(`current_period_end.is.null,current_period_end.gt.${new Date().toISOString()}`)
-    .limit(1);
+    .in("status", ["active", "paid", "trialing", "canceled"]);
 
   if (error) throw error;
-  return Boolean(data?.length);
+  const now = Date.now();
+  return Boolean(
+    data?.some((subscription) => {
+      const periodEnd = subscription.current_period_end ? new Date(subscription.current_period_end).getTime() : null;
+      if (subscription.status === "canceled") return Boolean(periodEnd && periodEnd > now);
+      return periodEnd === null || periodEnd > now;
+    })
+  );
 }
 

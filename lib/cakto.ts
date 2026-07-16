@@ -60,10 +60,11 @@ export function getCheckoutUrl(userId?: string) {
 export function billingCycleFromPayload(payload: CaktoWebhookPayload) {
   const data = getPayloadData(payload);
   const metadataCycle = data?.metadata?.billing_cycle;
+  const recurrencePeriod = Number(data?.subscription?.recurrence_period || 0);
   const productText = `${data?.product?.name || ""} ${data?.offer?.name || ""} ${data?.metadata?.plan || ""}`.toLowerCase();
 
-  if (metadataCycle === "annual" || productText.includes("anual")) return "annual";
-  if (metadataCycle === "quarterly" || productText.includes("trimestral")) return "quarterly";
+  if (metadataCycle === "annual" || productText.includes("anual") || recurrencePeriod >= 300) return "annual";
+  if (metadataCycle === "quarterly" || productText.includes("trimestral") || recurrencePeriod >= 80) return "quarterly";
   return "monthly";
 }
 
@@ -82,9 +83,10 @@ export function normalizedSubscriptionStatus(payload: CaktoWebhookPayload) {
   const data = getPayloadData(payload);
   const status = String(data?.subscription?.status || data?.status || "").toLowerCase();
 
+  if (event.includes("chargeback") || event.includes("chargedback") || status.includes("chargeback") || status.includes("chargedback")) return "chargeback";
   if (event.includes("cancel") || status.includes("cancel")) return "canceled";
-  if (event.includes("refund") || status.includes("refund")) return "refunded";
-  if (event.includes("refused") || status.includes("refused")) return "refused";
+  if (event.includes("refund") || event.includes("reembolso") || status.includes("refund") || status.includes("reembolso")) return "refunded";
+  if (event.includes("refused") || event.includes("recus") || status.includes("refused") || status.includes("recus")) return "refused";
   if (event.includes("approved") || event.includes("renewed") || status === "paid" || status === "approved") return "active";
   return status || "pending";
 }
@@ -114,7 +116,7 @@ export function payloadsFromCaktoWebhook(payload: CaktoWebhookPayload) {
 
 export function verifyCaktoSignature(rawBody: string, signature: string | null, payloadSecret?: string) {
   const secret = getEnv("CAKTO_WEBHOOK_SECRET");
-  if (!secret) return true;
+  if (!secret) return false;
 
   if (payloadSecret && safeCompare(secret, payloadSecret)) return true;
 

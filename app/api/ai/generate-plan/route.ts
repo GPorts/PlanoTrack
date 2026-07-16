@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { generatePlanWithAi } from "@/lib/openai-plan";
+import { getUserFromRequest, userHasActiveSubscription } from "@/lib/server-auth";
 
 const requestSchema = z.object({
   mode: z.enum(["ai"]).optional(),
@@ -8,7 +9,7 @@ const requestSchema = z.object({
     examName: z.string().min(1),
     examDate: z.string().min(1),
     hoursPerDay: z.number().min(1).max(12),
-    studyDays: z.array(z.string()),
+    studyDays: z.array(z.string()).min(1),
     preferredBlocks: z.string().default("")
   }),
   editalText: z.string().optional(),
@@ -33,12 +34,25 @@ const requestSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    const user = await getUserFromRequest(request);
+    if (!user) {
+      return NextResponse.json({ error: "Entre na sua conta para criar um plano." }, { status: 401 });
+    }
+
+    if (!(await userHasActiveSubscription(user.id))) {
+      return NextResponse.json({ error: "É necessário ter uma assinatura ativa para criar planos com IA." }, { status: 403 });
+    }
+
     const contentType = request.headers.get("content-type") || "";
     const body = contentType.includes("multipart/form-data") ? await formDataToBody(request) : await request.json();
     const parsed = requestSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json({ error: "Dados inválidos para gerar plano." }, { status: 400 });
+    }
+
+    if (isPastDate(parsed.data.routine.examDate)) {
+      return NextResponse.json({ error: "A data da prova precisa ser hoje ou uma data futura." }, { status: 400 });
     }
 
     const plan = await generatePlanWithAi(parsed.data);
@@ -78,6 +92,11 @@ async function serializeFile(file: File) {
     throw new Error("O arquivo precisa ter até 8 MB.");
   }
 
+  const extension = file.name.split(".").pop()?.toLowerCase();
+  if (!extension || !["pdf", "txt", "md"].includes(extension)) {
+    throw new Error("Envie o edital em PDF, TXT ou MD.");
+  }
+
   const buffer = Buffer.from(await file.arrayBuffer());
 
   return {
@@ -85,4 +104,12 @@ async function serializeFile(file: File) {
     type: file.type || "application/pdf",
     data: buffer.toString("base64")
   };
+}
+
+function isPastDate(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  const selected = new Date(year, month - 1, day);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Number.isNaN(selected.getTime()) || selected < today;
 }

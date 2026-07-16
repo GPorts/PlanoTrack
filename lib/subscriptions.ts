@@ -16,11 +16,7 @@ export async function upsertSubscription(params: {
 }) {
   const supabase = createAdminSupabaseClient();
   if (!supabase) {
-    return {
-      ok: true,
-      mode: "mock",
-      message: "Supabase não configurado. Assinatura aceita apenas em modo demonstração."
-    };
+    throw new Error("Supabase não configurado para processar assinaturas.");
   }
 
   const payload = {

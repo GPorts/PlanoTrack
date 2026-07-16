@@ -38,10 +38,17 @@ export function LoginForm() {
       return;
     }
 
-    const result =
-      mode === "signin"
-        ? await supabase.auth.signInWithPassword({ email: normalizedEmail, password })
-        : await supabase.auth.signUp({ email: normalizedEmail, password });
+    let result;
+    try {
+      result =
+        mode === "signin"
+          ? await supabase.auth.signInWithPassword({ email: normalizedEmail, password })
+          : await supabase.auth.signUp({ email: normalizedEmail, password });
+    } catch {
+      setLoading(false);
+      setMessage("Não foi possível conectar. Verifique sua internet e tente novamente.");
+      return;
+    }
 
     if (result.error) {
       setLoading(false);
@@ -50,14 +57,22 @@ export function LoginForm() {
     }
 
     const session = result.data.session || (await supabase.auth.getSession()).data.session;
-    if (session?.access_token) {
-      await fetch("/api/auth/link-subscription", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        }
-      });
+    if (!session?.access_token) {
+      setLoading(false);
+      setMessage(
+        mode === "signup"
+          ? "Conta criada. Confira seu e-mail para confirmar o cadastro e depois entre normalmente."
+          : "Não foi possível iniciar sua sessão. Tente entrar novamente."
+      );
+      return;
     }
+
+    await fetch("/api/auth/link-subscription", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`
+      }
+    }).catch(() => undefined);
 
     setLoading(false);
     router.push("/app");

@@ -33,7 +33,7 @@ export async function generatePlanWithAi(input: StudyPlanRequest): Promise<Gener
         instructions: [
           "Extraia do edital as disciplinas principais.",
           "Para cada disciplina, extraia todos os tópicos e subtópicos cobrados.",
-          "Quando houver tabela de número de questões, peso ou pontos, preencha questions e weight como o total de pontos da disciplina.",
+          "Quando houver tabela, preencha questions com o número de questões e weight com o total de pontos da disciplina (número de questões multiplicado pelo peso por questão).",
           "Não crie cronograma. O sistema vai distribuir os estudos até a data da prova.",
           "Não invente tópicos se o edital estiver anexado ou colado; normalize nomes e remova duplicidades."
         ],
@@ -53,6 +53,7 @@ export async function generatePlanWithAi(input: StudyPlanRequest): Promise<Gener
 
   const response = await client.responses.create({
     model,
+    store: false,
     input: [
       {
         role: "developer",
