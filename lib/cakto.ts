@@ -98,12 +98,32 @@ export function customerEmailFromPayload(payload: CaktoWebhookPayload) {
 
 export function currentPeriodStartFromPayload(payload: CaktoWebhookPayload) {
   const data = getPayloadData(payload);
-  return data?.current_period_start || data?.subscription?.createdAt || data?.paidAt || data?.createdAt || null;
+  return data?.current_period_start || data?.paidAt || data?.subscription?.createdAt || data?.createdAt || null;
 }
 
 export function currentPeriodEndFromPayload(payload: CaktoWebhookPayload) {
   const data = getPayloadData(payload);
-  return data?.current_period_end || data?.subscription?.next_payment_date || null;
+  const periodStart = currentPeriodStartFromPayload(payload);
+  const reportedPeriodEnd = data?.current_period_end || data?.subscription?.next_payment_date || null;
+
+  if (!periodStart) return reportedPeriodEnd;
+
+  const startTimestamp = new Date(periodStart).getTime();
+  const endTimestamp = reportedPeriodEnd ? new Date(reportedPeriodEnd).getTime() : Number.NaN;
+  const oneDayInMilliseconds = 24 * 60 * 60 * 1000;
+
+  // Pix Automático can report a transient next_payment_date only seconds after approval.
+  if (Number.isFinite(endTimestamp) && endTimestamp - startTimestamp >= oneDayInMilliseconds) {
+    return reportedPeriodEnd;
+  }
+
+  const recurrenceDays = Number(data?.subscription?.recurrence_period || 0);
+  const fallbackDays = billingCycleFromPayload(payload) === "annual" ? 365 : billingCycleFromPayload(payload) === "quarterly" ? 90 : 30;
+  const periodDays = recurrenceDays > 0 ? recurrenceDays : fallbackDays;
+
+  if (!Number.isFinite(startTimestamp)) return reportedPeriodEnd;
+
+  return new Date(startTimestamp + periodDays * oneDayInMilliseconds).toISOString();
 }
 
 export function payloadsFromCaktoWebhook(payload: CaktoWebhookPayload) {
