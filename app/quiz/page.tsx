@@ -182,7 +182,6 @@ const questions: QuizQuestion[] = [
 ];
 
 const stages: Stage[] = ["Perfil", "Diagnóstico", "Plano"];
-const annualCheckout = "https://pay.cakto.com.br/377yac9";
 
 export default function QuizPage() {
   const [view, setView] = useState<QuizView>("intro");
@@ -191,7 +190,6 @@ export default function QuizPage() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [salesHref, setSalesHref] = useState("/");
-  const [annualHref, setAnnualHref] = useState(annualCheckout);
 
   const question = questions[currentIndex];
   const result = useMemo(() => buildResult(answers), [answers]);
@@ -204,10 +202,6 @@ export default function QuizPage() {
     if (!params.has("utm_medium")) params.set("utm_medium", "diagnostico");
     params.set("utm_content", "resultado_quiz");
     setSalesHref(`/?${params.toString()}`);
-
-    const checkout = new URL(annualCheckout);
-    params.forEach((value, key) => checkout.searchParams.set(key, value));
-    setAnnualHref(checkout.toString());
   }, []);
 
   useEffect(() => {
@@ -292,7 +286,7 @@ export default function QuizPage() {
       </header>
 
       {view === "intro" ? <QuizIntro onStart={() => setView("questions")} /> : null}
-      {view === "result" ? <QuizResult answers={answers} result={result} salesHref={salesHref} annualHref={annualHref} /> : null}
+      {view === "result" ? <QuizResult answers={answers} result={result} salesHref={salesHref} /> : null}
 
       {view === "questions" ? (
         <section className="quiz-workspace">
@@ -330,7 +324,6 @@ export default function QuizPage() {
                 );
               })}
             </div>
-            <p className="quiz-auto-hint">Selecione uma resposta para continuar automaticamente.</p>
           </div>
         </section>
       ) : null}
@@ -452,25 +445,29 @@ function ProfileInsight({ answers, onContinue }: { answers: Answers; onContinue:
 }
 
 function DiagnosisInsight({ answers, onContinue }: { answers: Answers; onContinue: () => void }) {
-  const load = decisionLoad(answers);
-
   return (
     <div className="quiz-insight-content">
       <div className="quiz-insight-icon diagnostic"><BrainCircuit size={28} /></div>
       <p className="quiz-eyebrow">Leitura parcial das suas respostas</p>
       <h1>Seu principal ponto de atrito: {blockerLabel(answers.blocker).toLowerCase()}.</h1>
-      <p className="quiz-insight-lead">{blockerInsight(answers.blocker)} {consistencyInsight(answers.consistency)}</p>
+      <p className="quiz-insight-lead">A leitura abaixo separa o que acontece hoje, o impacto disso na sua rotina e o primeiro ajuste que pode tornar o estudo mais sustentável.</p>
 
-      <div className="quiz-decision-meter">
-        <div><span>Carga de decisões antes de estudar</span><strong>{load.label}</strong></div>
-        <div className="quiz-decision-track"><span style={{ width: `${load.width}%` }} /></div>
-        <small>Indicador deste diagnóstico, calculado a partir das suas respostas sobre planejamento, clareza e imprevistos.</small>
-      </div>
-
-      <div className="quiz-answer-signals">
-        <span><CheckCircle2 size={17} /> Método atual: {planningLabel(answers.planning)}</span>
-        <span><CheckCircle2 size={17} /> Clareza diária: {clarityLabel(answers.clarity)}</span>
-        <span><CheckCircle2 size={17} /> Reação a imprevistos: {consistencyLabel(answers.consistency)}</span>
+      <div className="quiz-diagnosis-explanation">
+        <h2>O que suas respostas indicam</h2>
+        <div className="quiz-diagnosis-points">
+          <div>
+            <CheckCircle2 size={19} />
+            <div><strong>Como o estudo começa hoje</strong><p>{planningInsight(answers.planning)} {clarityInsight(answers.clarity)}</p></div>
+          </div>
+          <div>
+            <CheckCircle2 size={19} />
+            <div><strong>O que mais atrapalha sua constância</strong><p>{blockerInsight(answers.blocker)} {consistencyInsight(answers.consistency)}</p></div>
+          </div>
+          <div>
+            <CheckCircle2 size={19} />
+            <div><strong>O que seu plano precisa resolver primeiro</strong><p>{diagnosisDirection(answers.blocker)}</p></div>
+          </div>
+        </div>
       </div>
 
       <button className="quiz-continue" type="button" onClick={onContinue}>Montar o formato do meu plano <ArrowRight size={19} /></button>
@@ -571,16 +568,12 @@ function LearningEvidence() {
 function QuizResult({
   answers,
   result,
-  salesHref,
-  annualHref
+  salesHref
 }: {
   answers: Answers;
   result: ReturnType<typeof buildResult>;
   salesHref: string;
-  annualHref: string;
 }) {
-  const load = decisionLoad(answers);
-
   return (
     <section className="quiz-result">
       <div className="quiz-result-main">
@@ -595,11 +588,7 @@ function QuizResult({
         </div>
 
         <div className="quiz-result-diagnosis">
-          <div>
-            <span>Carga de decisões antes de estudar</span>
-            <strong>{load.label}</strong>
-          </div>
-          <div className="quiz-decision-track"><span style={{ width: `${load.width}%` }} /></div>
+          <strong>O formato que tende a funcionar melhor para você</strong>
           <p>{supportInsight(answers.support)}</p>
         </div>
 
@@ -631,16 +620,13 @@ function QuizResult({
           <li><Check size={17} /> Calendário e metas editáveis</li>
           <li><Check size={17} /> Acompanhamento de sessões e questões</li>
         </ul>
-        <div className="quiz-annual-deal">
-          <span><BadgePercent size={17} /> 30% de economia no plano anual</span>
-          <div className="quiz-price-before">De R$ 358,80 por ano</div>
-          <div className="quiz-price-now"><strong>R$ 249,90</strong><small>/ano</small></div>
-          <p>Equivale a R$ 20,82/mês. Você economiza R$ 108,90 no ano.</p>
+        <div className="quiz-discount-note">
+          <BadgePercent size={22} />
+          <div><strong>Você recebeu 30% de desconto no plano anual</strong><p>Veja os detalhes da condição e compare todas as opções na próxima página.</p></div>
         </div>
 
-        <a className="quiz-start" href={annualHref}>Quero meu plano anual <ArrowRight size={19} /></a>
-        <Link className="quiz-all-plans" href={salesHref}>Ver recursos e outros planos</Link>
-        <small>Pagamento processado pela Cakto. Sem promessa de aprovação ou resultado garantido.</small>
+        <Link className="quiz-start" href={salesHref}>Quero meu plano <ArrowRight size={19} /></Link>
+        <small>Na próxima página você poderá conhecer os recursos, valores e condições antes de decidir.</small>
       </aside>
     </section>
   );
@@ -761,17 +747,6 @@ function deadlineRhythmLabel(value?: string) {
   }[value || ""] || "Ritmo personalizado";
 }
 
-function decisionLoad(answers: Answers) {
-  const score =
-    ({ none: 3, generic: 2, stuck: 2, working: 0 }[answers.planning] || 0) +
-    ({ always: 3, often: 2, sometimes: 1, rarely: 0 }[answers.clarity] || 0) +
-    ({ abandon: 3, pile: 2, improvise: 1, adapt: 0 }[answers.consistency] || 0);
-
-  if (score >= 7) return { label: "Alta", width: 88 };
-  if (score >= 4) return { label: "Moderada", width: 62 };
-  return { label: "Controlada", width: 34 };
-}
-
 function consistencyInsight(value?: string) {
   return {
     abandon: "Quando um dia falha, o cronograma deixa de orientar e aumenta a sensação de atraso.",
@@ -781,31 +756,32 @@ function consistencyInsight(value?: string) {
   }[value || ""] || "Um plano adaptável reduz o peso dos imprevistos.";
 }
 
-function planningLabel(value?: string) {
+function planningInsight(value?: string) {
   return {
-    none: "sem plano definido",
-    generic: "cronograma genérico",
-    stuck: "plano difícil de manter",
-    working: "estrutura funcional"
-  }[value || ""] || "a definir";
+    none: "Você ainda escolhe a matéria no próprio dia, então parte da energia é gasta decidindo por onde começar.",
+    generic: "Você já usa um cronograma, mas ele não transforma todo o conteúdo em tarefas específicas para cada sessão.",
+    stuck: "Você possui um plano, porém ele perde utilidade quando a rotina muda ou alguma tarefa fica para trás.",
+    working: "Você já possui uma estrutura que funciona e pode concentrar os próximos ajustes em prioridade e acompanhamento."
+  }[value || ""] || "Seu ponto de partida ainda precisa ser organizado com mais clareza.";
 }
 
-function clarityLabel(value?: string) {
+function clarityInsight(value?: string) {
   return {
-    always: "muito baixa",
-    often: "baixa",
-    sometimes: "razoável",
-    rarely: "alta"
-  }[value || ""] || "a definir";
+    always: "Na prática, quase todas as sessões começam sem uma próxima tarefa claramente definida.",
+    often: "Isso ainda acontece algumas vezes por semana e reduz o tempo disponível para estudar de fato.",
+    sometimes: "Essa dúvida aparece ocasionalmente, mas pode ser evitada com tarefas diárias mais específicas.",
+    rarely: "Você normalmente sabe o que fazer ao começar, o que é uma base positiva para o plano."
+  }[value || ""] || "Definir a próxima tarefa com antecedência tende a facilitar o início de cada sessão.";
 }
 
-function consistencyLabel(value?: string) {
+function diagnosisDirection(value?: string) {
   return {
-    abandon: "o ritmo se perde",
-    pile: "as tarefas acumulam",
-    improvise: "há reorganização manual",
-    adapt: "o plano é ajustado"
-  }[value || ""] || "a definir";
+    volume: "Dividir o conteúdo em etapas menores, com uma sequência visível de avanço e espaço para revisão.",
+    split: "Converter matérias e subtópicos em tarefas pequenas, específicas e distribuídas ao longo do calendário.",
+    priority: "Ordenar o estudo usando peso, importância e domínio atual, em vez de tratar todos os tópicos como igualmente urgentes.",
+    consistency: "Criar uma rotina que possa ser reajustada quando houver imprevistos, sem abandonar o que já foi concluído.",
+    review: "Incluir questões e revisões dentro do cronograma desde o início, e não como atividades extras."
+  }[value || ""] || "Transformar o conteúdo em próximas ações claras e ajustáveis.";
 }
 
 function routineLabel(value?: string) {
