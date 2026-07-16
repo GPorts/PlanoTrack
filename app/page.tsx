@@ -1,17 +1,19 @@
 import Link from "next/link";
 import {
   ArrowRight,
+  BookOpenCheck,
   CalendarDays,
   CheckCircle2,
   Clock3,
+  ExternalLink,
   Gauge,
   GraduationCap,
   ListChecks,
   LockKeyhole,
   MessageCircleQuestion,
+  Newspaper,
   ShieldCheck,
   Sparkles,
-  Star,
   Target,
   Upload
 } from "lucide-react";
@@ -81,7 +83,7 @@ const pricingPlans = [
     href: checkoutLinks.annual,
     cta: "Assinar anual",
     featured: true,
-    badge: "Mais escolhido -30%"
+    badge: "Melhor valor -30%"
   },
   {
     name: "Trimestral",
@@ -123,6 +125,7 @@ export default function HomePage() {
         <nav aria-label="Navegação da página">
           <a href="#features">Recursos</a>
           <a href="#how-it-works">Como funciona</a>
+          <Link href="/quiz">Diagnóstico</Link>
           <a href="#pricing">Planos</a>
           <a href="#faq">FAQ</a>
         </nav>
@@ -156,7 +159,7 @@ export default function HomePage() {
           </div>
           <div className="sales-proof-row">
             <span>
-              <Star size={16} /> MVP para concurseiros
+              <CheckCircle2 size={16} /> Calendário editável
             </span>
             <span>
               <ShieldCheck size={16} /> Garantia 7 dias
@@ -167,7 +170,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="sales-product-shot" aria-label="Prévia do PlanoTracker">
+        <div className="sales-product-shot" aria-label="Prévia ilustrativa do PlanoTracker">
           <div className="mock-window">
             <div className="mock-sidebar">
               <strong>PlanoTracker</strong>
@@ -180,7 +183,7 @@ export default function HomePage() {
             <div className="mock-main">
               <div className="mock-top">
                 <div>
-                  <small>Planejamento inteligente</small>
+                  <small>Prévia ilustrativa</small>
                   <strong>Painel</strong>
                 </div>
                 <button>Nova sessão</button>
@@ -307,15 +310,27 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="sales-section testimonials-section">
+      <section className="sales-section evidence-section">
         <div className="sales-section-title">
-          <p className="sales-kicker">Para quem vive edital</p>
-          <h2>Feito para reduzir a ansiedade antes da prova.</h2>
+          <p className="sales-kicker">Contexto e evidência</p>
+          <h2>Sem promessas mágicas. Organização para executar melhor.</h2>
+          <p>O PlanoTracker não garante aprovação. Ele atua na parte que pode ser organizada: transformar conteúdo, prazo e rotina em ações de estudo acompanháveis.</p>
         </div>
-        <div className="testimonial-grid">
-          <QuoteCard name="Mariana" role="Concurso municipal" text="Eu sabia as matérias, mas não sabia como quebrar tudo em metas. O plano pronto destravou minha semana." />
-          <QuoteCard name="Lucas" role="OAB" text="Gostei porque não fica preso na IA. Ela cria, mas eu consigo editar tudo do meu jeito." />
-          <QuoteCard name="Renata" role="Vestibular" text="O calendário adaptado à minha rotina deixou bem mais fácil entender o que fazer em cada dia." />
+        <div className="evidence-grid">
+          <article className="evidence-card">
+            <span className="evidence-icon"><Newspaper size={22} /></span>
+            <p className="evidence-label">Dados oficiais</p>
+            <h3>2,1 milhões de inscritos para 6.640 vagas no primeiro CPNU.</h3>
+            <p>A dimensão do concurso ajuda a mostrar por que clareza de prioridade e consistência importam em seleções concorridas.</p>
+            <a href="https://www.gov.br/gestao/pt-br/assuntos/noticias/2024/agosto/com-cerca-de-1-milhao-de-participantes-concurso-nacional-unificado-se-torna-a-maior-selecao-publica-da-historia-do-pais/" target="_blank" rel="noreferrer">Ler no Ministério da Gestão <ExternalLink size={15} /></a>
+          </article>
+          <article className="evidence-card research">
+            <span className="evidence-icon"><BookOpenCheck size={22} /></span>
+            <p className="evidence-label">Ciência da aprendizagem</p>
+            <h3>Estudar de forma distribuída tende a superar o estudo concentrado.</h3>
+            <p>Uma meta-análise de 2025 reuniu 22 relatórios, mais de 3 mil participantes e encontrou efeito moderado a favor da prática distribuída.</p>
+            <a href="https://pubmed.ncbi.nlm.nih.gov/40564553/" target="_blank" rel="noreferrer">Consultar estudo no PubMed <ExternalLink size={15} /></a>
+          </article>
         </div>
       </section>
 
@@ -416,22 +431,5 @@ function StudyPreview({ period, subject, topic }: { period: string; subject: str
         <small>{topic}</small>
       </div>
     </div>
-  );
-}
-
-function QuoteCard({ name, role, text }: { name: string; role: string; text: string }) {
-  return (
-    <article className="quote-card">
-      <div className="stars">
-        <Star size={16} />
-        <Star size={16} />
-        <Star size={16} />
-        <Star size={16} />
-        <Star size={16} />
-      </div>
-      <p>"{text}"</p>
-      <strong>{name}</strong>
-      <span>{role}</span>
-    </article>
   );
 }
