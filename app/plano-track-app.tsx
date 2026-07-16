@@ -652,6 +652,9 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
           </div>
           <div className="small-muted">{progressPercent}% concluído</div>
         </div>
+        <button className="sidebar-signout" type="button" onClick={signOut} title="Sair da conta">
+          <LogOut size={17} /> Sair
+        </button>
       </aside>
 
       <main className="planner-main">
@@ -679,9 +682,6 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
             ) : null}
             <button className="primary-button" type="button" onClick={() => setView("sessions")}>
               Nova sessão
-            </button>
-            <button className="ghost-button" type="button" onClick={signOut} title="Sair da conta">
-              <LogOut size={17} /> Sair
             </button>
           </div>
         </header>

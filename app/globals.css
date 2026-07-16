@@ -481,6 +481,26 @@ textarea {
   background: rgba(255, 255, 255, 0.18);
 }
 
+.sidebar-signout {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #adb8ca;
+  padding: 0 14px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.sidebar-signout:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
 .progress-fill {
   width: 0%;
   height: 100%;
