@@ -925,6 +925,10 @@ textarea {
   resize: vertical;
 }
 
+.routine-input {
+  min-height: 96px;
+}
+
 .day-picker {
   display: flex;
   flex-wrap: wrap;

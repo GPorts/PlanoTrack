@@ -1,10 +1,11 @@
-import type { GeneratedPlan, StudyPlanRequest, SubjectInput, ScheduleItem } from "./types";
+import type { GeneratedPlan, ScheduleItem, StudyBlock, StudyPlanRequest, StudyRoutinePolicy, SubjectInput } from "./types";
 
 const weekdayNames = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 
-export function generateRuleBasedPlan(input: StudyPlanRequest): GeneratedPlan {
+export function generateRuleBasedPlan(input: StudyPlanRequest, interpretedPolicy?: StudyRoutinePolicy): GeneratedPlan {
   const subjects = input.subjects?.length ? input.subjects : fallbackSubjects(input.editalText);
-  const schedule = buildSchedule(subjects, input.routine.examDate, input.routine.hoursPerDay, input.routine.studyDays, input.routine.preferredBlocks);
+  const policy = sanitizePolicy(enforceExplicitRoutineConstraints(interpretedPolicy, input.routine.preferredBlocks));
+  const schedule = buildSchedule(subjects, input.routine.examDate, input.routine.hoursPerDay, input.routine.studyDays, policy);
 
   return {
     title: input.routine.examName || "Novo plano de estudos",
@@ -13,11 +14,75 @@ export function generateRuleBasedPlan(input: StudyPlanRequest): GeneratedPlan {
     subjects,
     schedule,
     recommendations: [
-      "Priorize disciplinas com mais pontos e mais tópicos pendentes.",
-      "Reserve o bloco da noite para questões, revisão e caderno de erros.",
-      "Replaneje semanalmente quando houver atraso relevante."
+      "Use o calendário como ponto de partida e ajuste os dias quando a rotina mudar.",
+      "Acompanhe questões e acertos nas sessões para identificar as disciplinas que precisam de reforço.",
+      "Revise a distribuição semanalmente sem apagar o progresso já realizado."
     ],
     source: "rules"
+  };
+}
+
+export function inferRoutinePolicy(preferredBlocks = ""): StudyRoutinePolicy {
+  const normalized = normalize(preferredBlocks);
+  const flags = routineFlags(normalized);
+  const periodDefinitions: Array<{ key: string; period: StudyBlock["period"] }> = [
+    { key: "manha", period: "Manha" },
+    { key: "tarde", period: "Tarde" },
+    { key: "noite", period: "Noite" }
+  ];
+  const mentionedPeriods = periodDefinitions.filter(({ key }) => normalized.includes(key));
+  const selectedPeriods = mentionedPeriods.length ? mentionedPeriods : periodDefinitions;
+  const blocks = selectedPeriods.map(({ key, period }) => {
+    const instruction = instructionForPeriod(preferredBlocks, key);
+    return {
+      period,
+      kind: inferKind(instruction || preferredBlocks),
+      instruction: instruction || defaultInstruction(period)
+    };
+  });
+
+  return {
+    blocks,
+    maxSubjectsPerDay: flags.oneSubjectPerDay ? 1 : Math.min(3, blocks.length),
+    avoidConsecutiveSubjectDays: flags.alternateSubjects,
+    maxStudyDaysPerSubjectPerWeek: flags.noWeeklyRepeat ? 1 : 0
+  };
+}
+
+function enforceExplicitRoutineConstraints(interpretedPolicy: StudyRoutinePolicy | undefined, preferredBlocks: string) {
+  const localPolicy = inferRoutinePolicy(preferredBlocks);
+  if (!interpretedPolicy) return localPolicy;
+
+  const normalized = normalize(preferredBlocks);
+  const flags = routineFlags(normalized);
+  const hasExplicitPeriods = ["manha", "tarde", "noite"].some((period) => normalized.includes(period));
+  const blocks = hasExplicitPeriods
+    ? localPolicy.blocks.map((localBlock) => {
+        const interpretedBlock = interpretedPolicy.blocks.find((block) => block.period === localBlock.period);
+        return interpretedBlock
+          ? { ...interpretedBlock, kind: localBlock.kind, instruction: interpretedBlock.instruction || localBlock.instruction }
+          : localBlock;
+      })
+    : interpretedPolicy.blocks;
+
+  return {
+    blocks,
+    maxSubjectsPerDay: flags.oneSubjectPerDay ? 1 : interpretedPolicy.maxSubjectsPerDay,
+    avoidConsecutiveSubjectDays: flags.alternateSubjects || interpretedPolicy.avoidConsecutiveSubjectDays,
+    maxStudyDaysPerSubjectPerWeek: flags.noWeeklyRepeat ? 1 : interpretedPolicy.maxStudyDaysPerSubjectPerWeek
+  };
+}
+
+function routineFlags(normalized: string) {
+  return {
+    oneSubjectPerDay: [
+      /(?:apenas|somente|so) uma (?:unica )?materia por dia/,
+      /uma unica materia por dia/,
+      /1 materia por dia/,
+      /mesma materia (?:durante|em) (?:todo )?o dia/
+    ].some((pattern) => pattern.test(normalized)),
+    alternateSubjects: /intercal|altern|nao repetir|nao estudar a mesma materia.*(?:seguido|consecutiv)/.test(normalized),
+    noWeeklyRepeat: /(?:nao|nunca|evit)[^.\n;]*mesma materia[^.\n;]*(?:na semana|mesma semana|durante a semana)/.test(normalized)
   };
 }
 
@@ -40,87 +105,164 @@ function fallbackSubjects(editalText = ""): SubjectInput[] {
   }));
 }
 
-function buildSchedule(subjects: SubjectInput[], examDate: string, hoursPerDay: number, studyDays: string[], preferredBlocks: string): ScheduleItem[] {
-  const start = new Date();
+function buildSchedule(
+  subjects: SubjectInput[],
+  examDate: string,
+  hoursPerDay: number,
+  studyDays: string[],
+  policy: StudyRoutinePolicy
+): ScheduleItem[] {
+  if (!subjects.length || !policy.blocks.length) return [];
+
+  const start = startOfToday();
   const end = parseDate(examDate);
-  const blocks = parseStudyBlocks(preferredBlocks);
-  const minutesPerBlock = Math.max(45, Math.round((hoursPerDay * 60) / blocks.length));
+  const minutesPerBlock = Math.max(1, Math.round((hoursPerDay * 60) / policy.blocks.length));
   const schedule: ScheduleItem[] = [];
-  const cursors = new Map<string, number>();
-  const weightedSubjects = weightedQueue(subjects);
+  const topicCursors = new Map<string, number>();
+  const totalStudyDays = new Map<string, number>();
+  const weeklyStudyDays = new Map<string, Map<string, number>>();
+  let previousDaySubjects = new Set<string>();
 
   for (let date = start; date <= end; date = addDays(date, 1)) {
     const weekday = weekdayNames[date.getDay()];
     if (studyDays.length && !studyDays.includes(weekday)) continue;
 
-    const dayStartIndex = schedule.length;
+    const week = weekKey(date);
+    const weekCounts = weeklyStudyDays.get(week) || new Map<string, number>();
+    weeklyStudyDays.set(week, weekCounts);
+    const subjectCount = Math.min(policy.maxSubjectsPerDay, policy.blocks.length, subjects.length);
+    const daySubjects = selectSubjectsForDay(
+      subjects,
+      subjectCount,
+      totalStudyDays,
+      weekCounts,
+      previousDaySubjects,
+      policy
+    );
 
-    blocks.forEach((block, index) => {
-      const subject = weightedSubjects[(dayStartIndex + index) % weightedSubjects.length];
-      schedule.push(slot(date, block.period, subject, block.kind, minutesPerBlock, cursors));
+    policy.blocks.forEach((block, index) => {
+      const subject = daySubjects[index % daySubjects.length];
+      schedule.push(createSlot(date, block, subject, minutesPerBlock, topicCursors));
     });
+
+    daySubjects.forEach((subject) => {
+      totalStudyDays.set(subject.name, (totalStudyDays.get(subject.name) || 0) + 1);
+      weekCounts.set(subject.name, (weekCounts.get(subject.name) || 0) + 1);
+    });
+    previousDaySubjects = new Set(daySubjects.map((subject) => subject.name));
   }
 
   return schedule;
 }
 
-function parseStudyBlocks(preferredBlocks = ""): Array<{ period: ScheduleItem["period"]; kind: ScheduleItem["kind"] }> {
-  const normalized = normalize(preferredBlocks);
+function selectSubjectsForDay(
+  subjects: SubjectInput[],
+  count: number,
+  totalStudyDays: Map<string, number>,
+  weekCounts: Map<string, number>,
+  previousDaySubjects: Set<string>,
+  policy: StudyRoutinePolicy
+) {
+  const selected: SubjectInput[] = [];
 
-  if (!normalized.trim()) {
-    return [
-      { period: "Manha", kind: "teoria" },
-      { period: "Tarde", kind: "teoria" },
-      { period: "Noite", kind: "questoes" }
-    ];
-  }
+  while (selected.length < count) {
+    let candidates = subjects.filter((subject) => !selected.some((item) => item.name === subject.name));
+    const withinWeeklyLimit = candidates.filter(
+      (subject) => !policy.maxStudyDaysPerSubjectPerWeek || (weekCounts.get(subject.name) || 0) < policy.maxStudyDaysPerSubjectPerWeek
+    );
+    if (withinWeeklyLimit.length) candidates = withinWeeklyLimit;
 
-  const periods: Array<{ key: string; period: ScheduleItem["period"] }> = [
-    { key: "manha", period: "Manha" },
-    { key: "tarde", period: "Tarde" },
-    { key: "noite", period: "Noite" }
-  ];
-  const mentioned = periods.filter((item) => normalized.includes(item.key));
-  const selected = mentioned.length ? mentioned : periods;
-
-  return selected.map((item) => ({
-    period: item.period,
-    kind: inferKind(normalized, item.key)
-  }));
-}
-
-function inferKind(text: string, periodKey: string): ScheduleItem["kind"] {
-  const periodPosition = text.indexOf(periodKey);
-
-  if (periodPosition < 0) return "teoria";
-
-  const start = Math.max(0, periodPosition - 45);
-  const end = Math.min(text.length, periodPosition + periodKey.length + 60);
-  const nearby = text.slice(start, end);
-  const anchor = periodPosition - start;
-  const matches = [
-    { kind: "questoes" as const, distance: closestDistance(nearby, anchor, ["questões", "questão", "exercicio", "exercicios", "simulado", "simulados"]) },
-    { kind: "revisao" as const, distance: closestDistance(nearby, anchor, ["revisão", "revisar", "resumo", "resumos"]) },
-    { kind: "teoria" as const, distance: closestDistance(nearby, anchor, ["teoria", "aula", "aulas", "leitura", "conteúdo"]) }
-  ].filter((match) => match.distance !== Infinity);
-
-  if (!matches.length) return "teoria";
-
-  return matches.sort((a, b) => a.distance - b.distance)[0].kind;
-}
-
-function closestDistance(text: string, anchor: number, words: string[]) {
-  return words.reduce((closest, word) => {
-    let index = text.indexOf(word);
-    let bestForWord = Infinity;
-
-    while (index >= 0) {
-      bestForWord = Math.min(bestForWord, Math.abs(index - anchor));
-      index = text.indexOf(word, index + word.length);
+    if (policy.avoidConsecutiveSubjectDays) {
+      const nonConsecutive = candidates.filter((subject) => !previousDaySubjects.has(subject.name));
+      if (nonConsecutive.length) candidates = nonConsecutive;
     }
 
-    return Math.min(closest, bestForWord);
-  }, Infinity);
+    const next = [...candidates].sort((a, b) => {
+      const aNeed = ((totalStudyDays.get(a.name) || 0) + 1) / subjectPriority(a);
+      const bNeed = ((totalStudyDays.get(b.name) || 0) + 1) / subjectPriority(b);
+      return aNeed - bNeed || a.name.localeCompare(b.name, "pt-BR");
+    })[0];
+
+    if (!next) break;
+    selected.push(next);
+  }
+
+  return selected.length ? selected : [subjects[0]];
+}
+
+function subjectPriority(subject: SubjectInput) {
+  const points = positiveNumber(subject.weight) || positiveNumber(subject.questions) || 1;
+  const questionFactor = 1 + Math.min(positiveNumber(subject.questions), 100) / 200;
+  const contentFactor = 1 + Math.log2(Math.max(1, subject.topics.length) + 1) / 20;
+  return points * questionFactor * contentFactor;
+}
+
+function sanitizePolicy(policy: StudyRoutinePolicy): StudyRoutinePolicy {
+  const blocks = policy.blocks.length
+    ? policy.blocks.slice(0, 6).map((block) => ({
+        period: block.period,
+        kind: block.kind,
+        instruction: block.instruction.trim() || defaultInstruction(block.period)
+      }))
+    : inferRoutinePolicy("").blocks;
+
+  return {
+    blocks,
+    maxSubjectsPerDay: Math.max(1, Math.min(3, Math.round(policy.maxSubjectsPerDay || blocks.length))),
+    avoidConsecutiveSubjectDays: Boolean(policy.avoidConsecutiveSubjectDays),
+    maxStudyDaysPerSubjectPerWeek: Math.max(0, Math.min(7, Math.round(policy.maxStudyDaysPerSubjectPerWeek || 0)))
+  };
+}
+
+function instructionForPeriod(text: string, periodKey: string) {
+  const clause = text
+    .split(/[.;\n]+/)
+    .map((item) => item.trim())
+    .find((item) => normalize(item).includes(periodKey));
+
+  if (!clause) return "";
+
+  const sharedInstruction = clause.match(/\bpara\s+(.+)$/i)?.[1]?.trim();
+  if (sharedInstruction) return sentenceCase(sharedInstruction);
+
+  const words = clause.split(/\s+/);
+  const periodIndex = words.findIndex((word) => normalize(word).replace(/[^a-z]/g, "") === periodKey);
+  const withoutPeriod = periodIndex >= 0 ? words.slice(periodIndex + 1).join(" ").replace(/^[:,-]+\s*/, "").trim() : clause;
+  return sentenceCase(withoutPeriod || clause);
+}
+
+function inferKind(text: string): ScheduleItem["kind"] {
+  const normalized = normalize(text);
+  if (/quest|exerc|simulad|caderno de erros/.test(normalized)) return "questoes";
+  if (/revis|resumo|flashcard/.test(normalized)) return "revisao";
+  return "teoria";
+}
+
+function defaultInstruction(period: StudyBlock["period"]) {
+  if (period === "Noite") return "Resolver questões";
+  return "Estudar teoria";
+}
+
+function createSlot(
+  date: Date,
+  block: StudyBlock,
+  subject: SubjectInput,
+  minutes: number,
+  cursors: Map<string, number>
+): ScheduleItem {
+  const index = cursors.get(subject.name) || 0;
+  cursors.set(subject.name, index + 1);
+  const topic = subject.topics[index % Math.max(1, subject.topics.length)] || "Revisão geral";
+
+  return {
+    date: toIso(date),
+    weekday: weekdayNames[date.getDay()],
+    period: block.period,
+    subject: subject.name,
+    topic: `${trimTrailingPunctuation(block.instruction)}: ${topic}`,
+    kind: block.kind,
+    minutes
+  };
 }
 
 function normalize(value: string) {
@@ -130,32 +272,22 @@ function normalize(value: string) {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
-function weightedQueue(subjects: SubjectInput[]) {
-  const queue = subjects.flatMap((subject) => Array(Math.max(1, Math.round((subject.weight || 5) / 4))).fill(subject));
-  return queue.length ? queue : subjects;
+function positiveNumber(value?: number) {
+  return Number.isFinite(value) && Number(value) > 0 ? Number(value) : 0;
 }
 
-function slot(
-  date: Date,
-  period: ScheduleItem["period"],
-  subject: SubjectInput,
-  kind: ScheduleItem["kind"],
-  minutes: number,
-  cursors: Map<string, number>
-): ScheduleItem {
-  const index = cursors.get(subject.name) || 0;
-  cursors.set(subject.name, index + 1);
-  const topic = subject.topics[index % subject.topics.length] || "Revisão geral";
+function sentenceCase(value: string) {
+  return value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
+}
 
-  return {
-    date: toIso(date),
-    weekday: weekdayNames[date.getDay()],
-    period,
-    subject: subject.name,
-    topic: kind === "questoes" ? `Questões: ${topic}` : topic,
-    kind,
-    minutes
-  };
+function trimTrailingPunctuation(value: string) {
+  return value.replace(/[:;,.-]+$/, "").trim();
+}
+
+function startOfToday() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
 }
 
 function parseDate(value: string) {
@@ -167,6 +299,13 @@ function addDays(date: Date, days: number) {
   const copy = new Date(date);
   copy.setDate(copy.getDate() + days);
   return copy;
+}
+
+function weekKey(date: Date) {
+  const monday = new Date(date);
+  const offset = (date.getDay() + 6) % 7;
+  monday.setDate(date.getDate() - offset);
+  return toIso(monday);
 }
 
 function toIso(date: Date) {

@@ -15,6 +15,19 @@ export type RoutineInput = {
   preferredBlocks: string;
 };
 
+export type StudyBlock = {
+  period: "Manha" | "Tarde" | "Noite";
+  kind: "teoria" | "questoes" | "revisao";
+  instruction: string;
+};
+
+export type StudyRoutinePolicy = {
+  blocks: StudyBlock[];
+  maxSubjectsPerDay: number;
+  avoidConsecutiveSubjectDays: boolean;
+  maxStudyDaysPerSubjectPerWeek: number;
+};
+
 export type StudyPlanRequest = {
   mode?: StudyMode;
   routine: RoutineInput;

@@ -229,25 +229,15 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
       color: colors[index % colors.length],
       progress: 0
     }));
-    const mappedGoals = mappedSubjects.flatMap((subject, subjectIndex) =>
-      subject.topics.map((topic, topicIndex) => ({
-        id: `generated-${subjectIndex}-${topicIndex}`,
-        title: topic,
-        subject: subject.name,
-        due: plan.examDate,
-        done: false
-      }))
-    );
 
     setSubjects(mappedSubjects);
-    setGoals(mappedGoals);
+    setGoals([]);
     setSchedule(plan.schedule);
     setSessions([]);
     setCurrentPlanId("");
     setLastPlanSource(plan.source);
     setView("dashboard");
 
-    return { mappedSubjects, mappedGoals };
   }
 
   function importGeneratedPlan(plan: GeneratedPlan) {
@@ -259,18 +249,25 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
 
   function importStoredPlan(plan: StoredPlan) {
     const sortedSubjects = [...(plan.subjects || [])].sort((a, b) => a.name.localeCompare(b.name));
-    const mappedSubjects = sortedSubjects.map((subject, index) => ({
-      id: subject.id,
-      name: subject.name,
-      questions: subject.questions || 0,
-      weight: Number(subject.weight || 0),
-      color: subject.color || colors[index % colors.length],
-      progress: Number(subject.progress || calculateSubjectProgress(subject.topics || [])),
-      topics: [...(subject.topics || [])].sort((a, b) => a.position - b.position).map((topic) => topic.title),
-      topicIds: [...(subject.topics || [])].sort((a, b) => a.position - b.position).map((topic) => topic.id)
-    }));
+    const mappedSubjects = sortedSubjects.map((subject, index) => {
+      const syllabusTopics = [...(subject.topics || [])]
+        .filter((topic) => isSyllabusTopic(topic))
+        .sort((a, b) => a.position - b.position);
+
+      return {
+        id: subject.id,
+        name: subject.name,
+        questions: subject.questions || 0,
+        weight: Number(subject.weight || 0),
+        color: subject.color || colors[index % colors.length],
+        progress: Number(subject.progress || calculateSubjectProgress(syllabusTopics)),
+        topics: syllabusTopics.map((topic) => topic.title),
+        topicIds: syllabusTopics.map((topic) => topic.id)
+      };
+    });
     const mappedGoals = sortedSubjects.flatMap((subject) =>
       [...(subject.topics || [])]
+        .filter((topic) => !isSyllabusTopic(topic))
         .sort((a, b) => a.position - b.position)
         .map((topic) => ({
           id: topic.id,
@@ -278,7 +275,7 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
           subject: subject.name,
           subjectId: subject.id,
           due: topic.due_date || plan.exam_date,
-          done: topic.status === "done"
+          done: topic.status === "goal_done"
         }))
     );
     const mappedSchedule = [...(plan.schedule_items || [])]
@@ -336,7 +333,6 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
     const planId = savedPlan.id as string;
     const subjectIdByName = new Map<string, string>();
     const topicIdsBySubject = new Map<string, string[]>();
-    const generatedGoalIdMap = new Map<string, { id: string; subjectId: string }>();
 
     for (const [subjectIndex, subject] of plan.subjects.entries()) {
       const color = colors[subjectIndex % colors.length];
@@ -363,7 +359,8 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
           subject.topics.map((topic, index) => ({
             subject_id: subjectId,
             title: topic,
-            due_date: plan.examDate,
+            status: "syllabus",
+            due_date: null,
             position: index
           }))
         ).select("id,position");
@@ -374,9 +371,6 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
           .sort((a, b) => Number(a.position) - Number(b.position))
           .map((topic) => String(topic.id));
         topicIdsBySubject.set(subject.name, orderedTopicIds);
-        orderedTopicIds.forEach((topicId, topicIndex) => {
-          generatedGoalIdMap.set(`generated-${subjectIndex}-${topicIndex}`, { id: topicId, subjectId });
-        });
       }
     }
 
@@ -410,12 +404,6 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
         id: subjectIdByName.get(subject.name),
         topicIds: topicIdsBySubject.get(subject.name) || subject.topicIds
       }))
-    );
-    setGoals((currentGoals) =>
-      currentGoals.map((goal) => {
-        const savedGoal = generatedGoalIdMap.get(goal.id);
-        return savedGoal ? { ...goal, id: savedGoal.id, subjectId: savedGoal.subjectId } : goal;
-      })
     );
     setStorageMessage("Plano salvo automaticamente.");
     window.setTimeout(() => setStorageMessage(""), 3000);
@@ -480,7 +468,7 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
       id: goal.id,
       subject_id: subjectId,
       title: goal.title,
-      status: goal.done ? "done" : "pending",
+      status: goal.done ? "goal_done" : "goal_pending",
       due_date: goal.due,
       position: Math.max(0, goals.findIndex((item) => item.id === goal.id))
     });
@@ -515,7 +503,8 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
           id: subject.topicIds?.[index] || crypto.randomUUID(),
           subject_id: subject.id,
           title: topic,
-          status: goals.find((goal) => goal.id === subject.topicIds?.[index])?.done ? "done" : "pending",
+          status: "syllabus",
+          due_date: null,
           position: index
         }))
       );
@@ -525,7 +514,10 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
     const { data: storedTopics, error: storedTopicsError } = await supabase.from("topics").select("id").eq("subject_id", subject.id);
     if (storedTopicsError) throw storedTopicsError;
     const keptTopicIds = new Set(subject.topicIds || []);
-    const staleTopicIds = (storedTopics || []).map((topic) => String(topic.id)).filter((id) => !keptTopicIds.has(id));
+    const goalIds = new Set(goals.filter((goal) => goal.subjectId === subject.id).map((goal) => goal.id));
+    const staleTopicIds = (storedTopics || [])
+      .map((topic) => String(topic.id))
+      .filter((id) => !keptTopicIds.has(id) && !goalIds.has(id));
     if (staleTopicIds.length) {
       const { error: staleTopicsError } = await supabase.from("topics").delete().in("id", staleTopicIds);
       if (staleTopicsError) throw staleTopicsError;
@@ -910,7 +902,12 @@ function CreatePlan({ onPlanGenerated }: { onPlanGenerated: (plan: GeneratedPlan
 
         <label>
           Rotina desejada
-          <input name="preferredBlocks" defaultValue="Ex: manhã e tarde para teoria; noite para questões e revisão." />
+          <textarea
+            className="routine-input"
+            name="preferredBlocks"
+            rows={4}
+            placeholder="Ex.: Estudar uma matéria por dia e intercalar ao longo da semana. Manhã para lei seca; tarde para doutrina; noite para questões da matéria do dia."
+          />
         </label>
         <label>
           Edital
@@ -1049,7 +1046,7 @@ function Goals({
                 </button>
               </div>
             </article>
-          )) : <EmptyState text="As metas serão criadas automaticamente a partir dos subtópicos do edital." />}
+          )) : <EmptyState text="Crie metas próprias, como uma quantidade de questões, uma revisão ou um simulado com prazo definido." />}
         </div>
       </section>
 
@@ -1700,6 +1697,10 @@ function todayIso() {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function isSyllabusTopic(topic: { status: string }) {
+  return topic.status !== "goal_pending" && topic.status !== "goal_done";
 }
 
 function calculateSubjectProgress(topics: Array<{ status: string }>) {

@@ -37,8 +37,8 @@ const features = [
   },
   {
     icon: <Target size={22} />,
-    title: "Metas por tópico",
-    text: "Cada subtítulo do edital vira uma meta clara para marcar como feita."
+    title: "Metas personalizadas",
+    text: "Crie metas de questões, revisões ou simulados de acordo com o que você precisa cumprir."
   },
   {
     icon: <Gauge size={22} />,
@@ -146,7 +146,7 @@ export default function HomePage() {
           </p>
           <h1>Transforme qualquer edital em um plano de estudo completo.</h1>
           <p className="sales-lead">
-            O PlanoTracker organiza disciplinas, subtítulos, pesos, metas e calendário para quem precisa estudar com
+            O PlanoTracker organiza disciplinas, subtítulos, pesos e calendário para quem precisa estudar com
             clareza até o dia da prova.
           </p>
           <div className="sales-actions">
