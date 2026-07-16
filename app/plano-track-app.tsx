@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, ClipboardList, LayoutDashboard, ListChecks, Plus, Sparkles } from "lucide-react";
+import { CalendarDays, ClipboardList, LayoutDashboard, ListChecks, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { createBrowserSupabaseClient } from "@/lib/supabase";
 import type { GeneratedPlan, ScheduleItem, SubjectInput } from "@/lib/types";
 
@@ -221,6 +221,7 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
     const mappedSchedule = [...(plan.schedule_items || [])]
       .sort((a, b) => `${a.date}-${periodOrder(a.period)}`.localeCompare(`${b.date}-${periodOrder(b.period)}`))
       .map((item) => ({
+        id: item.id,
         date: item.date,
         weekday: weekdayFromIso(item.date),
         period: item.period,
@@ -317,8 +318,10 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
     }
 
     if (plan.schedule.length) {
+      const scheduleWithIds = plan.schedule.map((item) => ({ ...item, id: crypto.randomUUID() }));
       const { error: scheduleError } = await supabase.from("schedule_items").insert(
-        plan.schedule.map((item) => ({
+        scheduleWithIds.map((item) => ({
+          id: item.id,
           plan_id: planId,
           date: item.date,
           period: item.period,
@@ -330,6 +333,7 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
       );
 
       if (scheduleError) throw scheduleError;
+      setSchedule(scheduleWithIds);
     }
 
     setCurrentPlanId(planId);
@@ -454,9 +458,9 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
 
   async function persistSession(session: Session) {
     const supabase = createBrowserSupabaseClient();
-    if (!supabase || !currentPlanId || !userId) return;
+    if (!supabase || !currentPlanId || !userId) throw new Error("Crie e salve um plano antes de registrar uma sessão.");
 
-    await supabase.from("study_sessions").insert({
+    const { error } = await supabase.from("study_sessions").insert({
       id: session.id,
       plan_id: currentPlanId,
       user_id: userId,
@@ -467,6 +471,50 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
       correct: session.correct,
       notes: session.notes
     });
+
+    if (error) throw error;
+  }
+
+  async function persistScheduleDay(originalDate: string | null, day: ScheduleItem[]) {
+    const supabase = createBrowserSupabaseClient();
+    if (!supabase || !currentPlanId) throw new Error("Crie e salve um plano antes de alterar o calendário.");
+
+    const currentDay = originalDate ? schedule.filter((item) => item.date === originalDate) : [];
+    const preparedDay = day.map((item, index) => ({
+      ...item,
+      id: item.id || currentDay[index]?.id || crypto.randomUUID(),
+      weekday: weekdayFromIso(item.date)
+    }));
+
+    const { error: saveError } = await supabase.from("schedule_items").upsert(
+      preparedDay.map((item) => ({
+        id: item.id,
+        plan_id: currentPlanId,
+        date: item.date,
+        period: item.period,
+        kind: item.kind,
+        minutes: item.minutes,
+        subject_name: item.subject,
+        topic_title: item.topic
+      }))
+    );
+
+    if (saveError) throw saveError;
+
+    const keptIds = new Set(preparedDay.map((item) => item.id));
+    const removedIds = currentDay.map((item) => item.id).filter((id): id is string => Boolean(id && !keptIds.has(id)));
+    if (removedIds.length) {
+      const { error: deleteError } = await supabase.from("schedule_items").delete().in("id", removedIds);
+      if (deleteError) throw deleteError;
+    }
+
+    setSchedule((current) =>
+      [...current.filter((item) => item.date !== originalDate), ...preparedDay].sort((a, b) =>
+        `${a.date}-${periodOrder(a.period)}`.localeCompare(`${b.date}-${periodOrder(b.period)}`)
+      )
+    );
+    setStorageMessage("Calendário salvo automaticamente.");
+    window.setTimeout(() => setStorageMessage(""), 3000);
   }
 
   return (
@@ -526,7 +574,7 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
           />
         ) : null}
         {view === "create" ? <CreatePlan onPlanGenerated={importGeneratedPlan} /> : null}
-        {view === "calendar" ? <Calendar schedule={schedule} /> : null}
+        {view === "calendar" ? <Calendar schedule={schedule} subjects={subjects} onSaveDay={persistScheduleDay} /> : null}
         {view === "goals" ? <Goals goals={goals} setGoals={setGoals} openGoalModal={openGoalModal} onPersistGoal={persistGoal} onDeleteGoal={deleteGoalFromStorage} /> : null}
         {view === "subjects" ? <Subjects subjects={subjects} setSubjects={setSubjects} openSubjectModal={openSubjectModal} onDeleteSubject={deleteSubjectFromStorage} /> : null}
         {view === "sessions" ? <Sessions subjects={subjects} sessions={sessions} setSessions={setSessions} onPersistSession={persistSession} /> : null}
@@ -739,7 +787,17 @@ function CreatePlan({ onPlanGenerated }: { onPlanGenerated: (plan: GeneratedPlan
   );
 }
 
-function Calendar({ schedule }: { schedule: ScheduleItem[] }) {
+function Calendar({
+  schedule,
+  subjects,
+  onSaveDay
+}: {
+  schedule: ScheduleItem[];
+  subjects: Subject[];
+  onSaveDay: (originalDate: string | null, day: ScheduleItem[]) => Promise<void>;
+}) {
+  const [editingDay, setEditingDay] = useState<ScheduleItem[] | null>(null);
+  const [isCreatingDay, setIsCreatingDay] = useState(false);
   const days = Object.values(
     schedule.reduce<Record<string, ScheduleItem[]>>((acc, item) => {
       acc[item.date] ||= [];
@@ -748,11 +806,42 @@ function Calendar({ schedule }: { schedule: ScheduleItem[] }) {
     }, {})
   );
 
-  if (!days.length) {
-    return <EmptyPanel title="Calendário vazio" text="Gere um plano com IA para montar os dias de estudo até a prova." />;
-  }
+  return (
+    <>
+      <div className="calendar-toolbar">
+        <div>
+          <strong>Agenda de estudos</strong>
+          <span>Crie novos dias ou ajuste os blocos gerados pela IA.</span>
+        </div>
+        <button className="primary-button" type="button" onClick={() => setIsCreatingDay(true)}>
+          <Plus size={18} /> Novo dia
+        </button>
+      </div>
 
-  return <div className="calendar-grid">{days.map((day, index) => <DayCard key={day[0].date} day={day} color={calendarColors[index % calendarColors.length]} />)}</div>;
+      {days.length ? (
+        <div className="calendar-grid">
+          {days.map((day, index) => (
+            <DayCard key={day[0].date} day={day} color={calendarColors[index % calendarColors.length]} onEdit={() => setEditingDay(day)} />
+          ))}
+        </div>
+      ) : (
+        <EmptyPanel title="Calendário vazio" text="Crie um dia manualmente ou gere um plano com IA para montar sua agenda de estudos." />
+      )}
+
+      {editingDay || isCreatingDay ? (
+        <ScheduleDayModal
+          day={editingDay}
+          subjects={subjects}
+          unavailableDates={schedule.map((item) => item.date)}
+          onClose={() => {
+            setEditingDay(null);
+            setIsCreatingDay(false);
+          }}
+          onSave={onSaveDay}
+        />
+      ) : null}
+    </>
+  );
 }
 
 function Goals({
@@ -956,9 +1045,14 @@ function Sessions({
   setSessions: (sessions: Session[]) => void;
   onPersistSession: (session: Session) => Promise<void>;
 }) {
-  function submit(event: React.FormEvent<HTMLFormElement>) {
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     const session = {
       id: crypto.randomUUID(),
       date: String(form.get("date")),
@@ -968,14 +1062,24 @@ function Sessions({
       correct: Number(form.get("correct")),
       notes: String(form.get("notes") || "")
     };
-    setSessions([session, ...sessions]);
-    onPersistSession(session).catch(() => undefined);
-    event.currentTarget.reset();
+
+    setIsSaving(true);
+    setSaveError("");
+    try {
+      await onPersistSession(session);
+      setSessions([session, ...sessions]);
+      formElement.reset();
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Não foi possível salvar a sessão.");
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
-    <div className="content-grid">
-      <section className="panel">
+    <>
+      <div className="content-grid">
+        <section className="panel">
         <div className="panel-header">
           <h2>Registrar sessão</h2>
         </div>
@@ -1008,17 +1112,204 @@ function Sessions({
             Observações
             <textarea name="notes" />
           </label>
-          <button className="primary-button" type="submit">Salvar sessão</button>
+          {saveError ? <div className="notice">{saveError}</div> : null}
+          <button className="primary-button" type="submit" disabled={isSaving}>{isSaving ? "Salvando..." : "Salvar sessão"}</button>
         </form>
-      </section>
-      <section className="panel">
-        <h2>Histórico</h2>
-        <div className="stack-list">
-          {sessions.length ? sessions.map((session) => <div className="session-item" key={session.id}><strong>{session.subject}</strong><span>{formatMinutes(session.minutes)} | {session.questions} questões</span></div>) : <EmptyState text="Nenhuma sessão registrada ainda." />}
+        </section>
+        <section className="panel">
+          <h2>Histórico</h2>
+          <div className="stack-list">
+            {sessions.length ? sessions.map((session) => (
+              <button className="session-item session-history-button" type="button" key={session.id} onClick={() => setSelectedSession(session)}>
+                <div>
+                  <strong>{session.subject}</strong>
+                  <span>{formatDate(session.date)} | {formatMinutes(session.minutes)} | {session.questions} questões</span>
+                </div>
+                <span className="session-view-label">Ver detalhes</span>
+              </button>
+            )) : <EmptyState text="Nenhuma sessão registrada ainda." />}
+          </div>
+        </section>
+      </div>
+
+      {selectedSession ? <SessionDetailsModal session={selectedSession} onClose={() => setSelectedSession(null)} /> : null}
+    </>
+  );
+}
+
+function ScheduleDayModal({
+  day,
+  subjects,
+  unavailableDates,
+  onClose,
+  onSave
+}: {
+  day: ScheduleItem[] | null;
+  subjects: Subject[];
+  unavailableDates: string[];
+  onClose: () => void;
+  onSave: (originalDate: string | null, day: ScheduleItem[]) => Promise<void>;
+}) {
+  const originalDate = day?.[0]?.date || null;
+  const [date, setDate] = useState(originalDate || todayIso());
+  const [slots, setSlots] = useState<ScheduleItem[]>(
+    day?.map((item) => ({ ...item })) || [createEmptyScheduleItem(todayIso(), subjects[0]?.name || "Geral")]
+  );
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  function updateSlot(index: number, changes: Partial<ScheduleItem>) {
+    setSlots((current) => current.map((slot, slotIndex) => (slotIndex === index ? { ...slot, ...changes } : slot)));
+  }
+
+  function addSlot() {
+    setSlots((current) => [...current, createEmptyScheduleItem(date, subjects[0]?.name || "Geral")]);
+  }
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const dateAlreadyUsed = unavailableDates.some((usedDate) => usedDate === date && usedDate !== originalDate);
+    if (dateAlreadyUsed) {
+      setError("Já existe um dia de estudo nessa data. Edite o cartão correspondente.");
+      return;
+    }
+    if (!slots.length) {
+      setError("Adicione pelo menos um bloco de estudo.");
+      return;
+    }
+
+    setIsSaving(true);
+    setError("");
+    try {
+      await onSave(
+        originalDate,
+        slots.map((slot) => ({ ...slot, date, weekday: weekdayFromIso(date) }))
+      );
+      onClose();
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Não foi possível salvar o dia de estudo.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <div className="modal-backdrop" role="presentation">
+      <form className="modal-card schedule-day-modal" onSubmit={submit}>
+        <div className="modal-title-row">
+          <div>
+            <h2>{day ? "Editar dia de estudo" : "Novo dia de estudo"}</h2>
+            <p className="muted">Organize os blocos na ordem em que serão realizados.</p>
+          </div>
+          <button className="ghost-button compact-button" type="button" onClick={addSlot}>
+            <Plus size={17} /> Adicionar bloco
+          </button>
         </div>
-      </section>
+
+        <label>
+          Data
+          <input type="date" value={date} onChange={(event) => setDate(event.target.value)} required autoFocus />
+        </label>
+
+        <div className="schedule-slot-list">
+          {slots.map((slot, index) => (
+            <fieldset className="schedule-slot-editor" key={slot.id || `new-slot-${index}`}>
+              <legend>Bloco {index + 1}</legend>
+              <button
+                className="icon-button remove-slot-button"
+                type="button"
+                title="Remover bloco"
+                aria-label={`Remover bloco ${index + 1}`}
+                onClick={() => setSlots((current) => current.filter((_, slotIndex) => slotIndex !== index))}
+              >
+                <Trash2 size={17} />
+              </button>
+              <div className="form-row">
+                <label>
+                  Período
+                  <select value={slot.period} onChange={(event) => updateSlot(index, { period: event.target.value as ScheduleItem["period"] })}>
+                    <option value="Manha">Manhã</option>
+                    <option value="Tarde">Tarde</option>
+                    <option value="Noite">Noite</option>
+                  </select>
+                </label>
+                <label>
+                  Duração em minutos
+                  <input type="number" min="1" value={slot.minutes} onChange={(event) => updateSlot(index, { minutes: Number(event.target.value) })} required />
+                </label>
+              </div>
+              <div className="form-row">
+                <label>
+                  Disciplina
+                  <select value={slot.subject} onChange={(event) => updateSlot(index, { subject: event.target.value })}>
+                    {subjects.length ? subjects.map((subject) => <option key={subject.name} value={subject.name}>{subject.name}</option>) : <option value="Geral">Geral</option>}
+                  </select>
+                </label>
+                <label>
+                  Tipo de estudo
+                  <select value={slot.kind} onChange={(event) => updateSlot(index, { kind: event.target.value as ScheduleItem["kind"] })}>
+                    <option value="teoria">Teoria</option>
+                    <option value="questoes">Questões</option>
+                    <option value="revisao">Revisão</option>
+                  </select>
+                </label>
+              </div>
+              <label>
+                Conteúdo
+                <input value={slot.topic} onChange={(event) => updateSlot(index, { topic: event.target.value })} placeholder="Assunto ou subtópico a estudar" required />
+              </label>
+            </fieldset>
+          ))}
+        </div>
+
+        {error ? <div className="notice">{error}</div> : null}
+        <div className="modal-actions">
+          <button className="ghost-button" type="button" onClick={onClose}>Cancelar</button>
+          <button className="primary-button" type="submit" disabled={isSaving}>{isSaving ? "Salvando..." : "Salvar dia"}</button>
+        </div>
+      </form>
     </div>
   );
+}
+
+function SessionDetailsModal({ session, onClose }: { session: Session; onClose: () => void }) {
+  const accuracy = session.questions ? Math.round((session.correct / session.questions) * 100) : 0;
+
+  return (
+    <div className="modal-backdrop" role="presentation">
+      <div className="modal-card session-details-modal" role="dialog" aria-modal="true" aria-labelledby="session-details-title">
+        <div>
+          <h2 id="session-details-title">Detalhes da sessão</h2>
+          <p className="muted">{session.subject} | {formatDate(session.date)}</p>
+        </div>
+        <dl className="session-details-grid">
+          <div><dt>Tempo estudado</dt><dd>{formatMinutes(session.minutes)}</dd></div>
+          <div><dt>Questões</dt><dd>{session.questions}</dd></div>
+          <div><dt>Acertos</dt><dd>{session.correct}</dd></div>
+          <div><dt>Taxa de acerto</dt><dd>{accuracy}%</dd></div>
+        </dl>
+        <div className="session-notes">
+          <strong>Observações</strong>
+          <p>{session.notes.trim() || "Nenhuma observação registrada nesta sessão."}</p>
+        </div>
+        <div className="modal-actions">
+          <button className="primary-button" type="button" onClick={onClose}>Fechar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function createEmptyScheduleItem(date: string, subject: string): ScheduleItem {
+  return {
+    date,
+    weekday: weekdayFromIso(date),
+    period: "Manha",
+    subject,
+    topic: "",
+    kind: "teoria",
+    minutes: 60
+  };
 }
 
 function GoalModal({
@@ -1196,12 +1487,17 @@ function SubjectRow({ subject, sessions }: { subject: Subject; sessions: Session
   );
 }
 
-function DayCard({ day, color }: { day: ScheduleItem[]; color: string }) {
+function DayCard({ day, color, onEdit }: { day: ScheduleItem[]; color: string; onEdit: () => void }) {
   return (
     <article className="calendar-card day-plan">
       <div className="calendar-head" style={{ background: color }}>
         <strong>{formatDate(day[0].date)}</strong>
-        <span>{displayWeekday(day[0].weekday)}</span>
+        <div className="calendar-head-actions">
+          <span>{displayWeekday(day[0].weekday)}</span>
+          <button className="calendar-edit-button" type="button" title="Editar dia" aria-label={`Editar dia ${formatDate(day[0].date)}`} onClick={onEdit}>
+            <Pencil size={16} />
+          </button>
+        </div>
       </div>
       <div className="calendar-body">
         {day.map((slot) => (

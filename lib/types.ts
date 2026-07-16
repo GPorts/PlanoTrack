@@ -30,6 +30,7 @@ export type StudyPlanRequest = {
 export type PlanSource = "openai" | "rules";
 
 export type ScheduleItem = {
+  id?: string;
   date: string;
   weekday: string;
   period: "Manha" | "Tarde" | "Noite";
