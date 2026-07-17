@@ -833,6 +833,14 @@ function CreatePlan({ onPlanGenerated }: { onPlanGenerated: (plan: GeneratedPlan
       return;
     }
 
+    const editalText = String(form.get("editalText") || "").trim();
+    const editalFile = form.get("editalFile");
+    if (!editalText && (!(editalFile instanceof File) || editalFile.size === 0)) {
+      setLoading(false);
+      setError("Cole o conteúdo do edital ou anexe um arquivo para gerar o plano.");
+      return;
+    }
+
     const supabase = createBrowserSupabaseClient();
     const session = supabase ? (await supabase.auth.getSession()).data.session : null;
     if (!session?.access_token) {
@@ -1673,9 +1681,11 @@ function formatMinutes(totalMinutes: number) {
 }
 
 function formatHours(totalMinutes: number) {
-  const value = totalMinutes / 60;
-  const formatted = Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
-  return `${formatted}h`;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (!hours) return `${minutes}min`;
+  if (!minutes) return `${hours}h`;
+  return `${hours}h ${minutes}min`;
 }
 
 function formatDate(value: string) {

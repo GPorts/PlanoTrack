@@ -15,9 +15,9 @@ const requestSchema = z.object({
   editalText: z.string().optional(),
   editalFile: z
     .object({
-      name: z.string(),
+      name: z.string().min(1),
       type: z.string(),
-      data: z.string()
+      data: z.string().min(1)
     })
     .optional(),
   subjects: z
@@ -53,6 +53,10 @@ export async function POST(request: Request) {
 
     if (isBeforeTomorrow(parsed.data.routine.examDate)) {
       return NextResponse.json({ error: "A data da prova precisa ser amanhã ou uma data futura." }, { status: 400 });
+    }
+
+    if (!parsed.data.editalText?.trim() && !parsed.data.editalFile) {
+      return NextResponse.json({ error: "Cole o conteúdo do edital ou anexe um arquivo para gerar o plano." }, { status: 400 });
     }
 
     const plan = await generatePlanWithAi(parsed.data);
