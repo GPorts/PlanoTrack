@@ -60,7 +60,11 @@ function enforceExplicitRoutineConstraints(interpretedPolicy: StudyRoutinePolicy
     ? localPolicy.blocks.map((localBlock) => {
         const interpretedBlock = interpretedPolicy.blocks.find((block) => block.period === localBlock.period);
         return interpretedBlock
-          ? { ...interpretedBlock, kind: localBlock.kind, instruction: interpretedBlock.instruction || localBlock.instruction }
+          ? {
+              ...interpretedBlock,
+              kind: inferKind(interpretedBlock.instruction || localBlock.instruction),
+              instruction: interpretedBlock.instruction || localBlock.instruction
+            }
           : localBlock;
       })
     : interpretedPolicy.blocks;

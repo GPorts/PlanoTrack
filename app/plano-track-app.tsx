@@ -1653,7 +1653,7 @@ function DayCard({ day, color, onEdit }: { day: ScheduleItem[]; color: string; o
         {day.map((slot) => (
           <div className="study-slot" key={`${slot.date}-${slot.period}`}>
             <div className="slot-time">{displayPeriod(slot.period)}<span>{formatHours(slot.minutes)}</span></div>
-            <div><strong>{slot.subject}</strong><p>{slot.topic}</p><span className="mini-meta">{displayKind(slot.kind)}</span></div>
+            <div><strong>{slot.subject}</strong><p>{slot.topic}</p></div>
           </div>
         ))}
       </div>
