@@ -51,8 +51,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Dados inválidos para gerar plano." }, { status: 400 });
     }
 
-    if (isPastDate(parsed.data.routine.examDate)) {
-      return NextResponse.json({ error: "A data da prova precisa ser hoje ou uma data futura." }, { status: 400 });
+    if (isBeforeTomorrow(parsed.data.routine.examDate)) {
+      return NextResponse.json({ error: "A data da prova precisa ser amanhã ou uma data futura." }, { status: 400 });
     }
 
     const plan = await generatePlanWithAi(parsed.data);
@@ -76,7 +76,7 @@ async function formDataToBody(request: Request) {
     routine: {
       examName: String(form.get("examName") || ""),
       examDate: String(form.get("examDate") || ""),
-      hoursPerDay: Number(form.get("hoursPerDay") || 6),
+      hoursPerDay: Number(form.get("hoursPerDay") || 0),
       studyDays,
       preferredBlocks: String(form.get("preferredBlocks") || "")
     },
@@ -106,10 +106,10 @@ async function serializeFile(file: File) {
   };
 }
 
-function isPastDate(value: string) {
+function isBeforeTomorrow(value: string) {
   const [year, month, day] = value.split("-").map(Number);
   const selected = new Date(year, month - 1, day);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  return Number.isNaN(selected.getTime()) || selected < today;
+  return Number.isNaN(selected.getTime()) || selected <= today;
 }

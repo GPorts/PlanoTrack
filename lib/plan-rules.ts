@@ -115,7 +115,7 @@ function buildSchedule(
   if (!subjects.length || !policy.blocks.length) return [];
 
   const start = startOfToday();
-  const end = parseDate(examDate);
+  const end = addDays(parseDate(examDate), -1);
   const minutesPerBlock = Math.max(1, Math.round((hoursPerDay * 60) / policy.blocks.length));
   const schedule: ScheduleItem[] = [];
   const topicCursors = new Map<string, number>();

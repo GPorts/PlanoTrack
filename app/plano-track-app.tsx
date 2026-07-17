@@ -872,17 +872,17 @@ function CreatePlan({ onPlanGenerated }: { onPlanGenerated: (plan: GeneratedPlan
         <div className="form-row">
           <label>
             Nome da prova
-            <input name="examName" defaultValue="Concurso PGM" required />
+            <input name="examName" required />
           </label>
           <label>
             Data da prova
-            <input name="examDate" type="date" min={todayIso()} required />
+            <input name="examDate" type="date" min={tomorrowIso()} required />
           </label>
         </div>
         <div className="form-row">
           <label>
             Horas por dia
-            <input name="hoursPerDay" type="number" min="1" max="12" defaultValue="6" required />
+            <input name="hoursPerDay" type="number" min="1" max="12" required />
           </label>
           <label>
             Edital em arquivo
@@ -914,11 +914,11 @@ function CreatePlan({ onPlanGenerated }: { onPlanGenerated: (plan: GeneratedPlan
           <textarea name="editalText" placeholder="Cole aqui o conteúdo programático do edital ou anexe o PDF acima..." />
         </label>
 
-        <div className="notice">O PlanoTracker usa IA para ler o edital e monta o calendário completo até a data da prova.</div>
+        <div className="notice">O PlanoTracker usa IA para ler o edital e monta o calendário completo até a véspera da prova.</div>
         {error ? <div className="notice">{error}</div> : null}
 
         <button className="primary-button" type="submit" disabled={loading}>
-          {loading ? "Criando..." : "Gerar plano com IA"}
+          {loading ? "Gerando..." : "Gerar plano"}
         </button>
       </form>
     </section>
@@ -1693,6 +1693,15 @@ function weekdayFromIso(value: string) {
 
 function todayIso() {
   const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function tomorrowIso() {
+  const date = new Date();
+  date.setDate(date.getDate() + 1);
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
