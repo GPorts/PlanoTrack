@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   ArrowRight,
+  BarChart3,
   BookOpenCheck,
   CalendarDays,
   CheckCircle2,
@@ -12,6 +13,8 @@ import {
   LockKeyhole,
   MessageCircleQuestion,
   Newspaper,
+  RefreshCw,
+  Route,
   ShieldCheck,
   Sparkles,
   Target,
@@ -27,33 +30,27 @@ const checkoutLinks = {
 const features = [
   {
     icon: <Upload size={22} />,
-    title: "Edital vira plano",
-    text: "Cole o edital e a IA separa disciplinas, tópicos, pesos e ordem de estudo."
+    number: "01",
+    title: "O edital vira uma rota",
+    text: "A IA separa disciplinas e subtópicos e transforma o conteúdo em uma sequência executável."
   },
   {
     icon: <CalendarDays size={22} />,
-    title: "Cronograma diário",
-    text: "Rotina flexível por data, com teoria, revisão, questões ou os blocos que fizerem sentido."
-  },
-  {
-    icon: <Target size={22} />,
-    title: "Metas personalizadas",
-    text: "Crie metas de questões, revisões ou simulados de acordo com o que você precisa cumprir."
+    number: "02",
+    title: "A rotina define o calendário",
+    text: "Você informa dias, horários e método. O plano respeita sua disponibilidade real até a prova."
   },
   {
     icon: <Gauge size={22} />,
-    title: "Peso das matérias",
-    text: "Priorize o que mais cai e acompanhe progresso por disciplina."
+    number: "03",
+    title: "Prioridades ficam visíveis",
+    text: "Pesos, quantidade de questões e progresso ajudam a concentrar energia no que mais importa."
   },
   {
-    icon: <ListChecks size={22} />,
-    title: "Questões e sessões",
-    text: "Registre tempo estudado, quantidade de questões e taxa de acerto."
-  },
-  {
-    icon: <Sparkles size={22} />,
-    title: "Replanejamento simples",
-    text: "Ajuste disciplinas, metas e sessões quando a rotina mudar."
+    icon: <RefreshCw size={22} />,
+    number: "04",
+    title: "O plano acompanha a semana",
+    text: "Calendário, disciplinas e sessões continuam editáveis quando sua rotina precisar mudar."
   }
 ];
 
@@ -79,17 +76,17 @@ const pricingPlans = [
     name: "Anual",
     price: "R$ 249,90",
     suffix: "/ano",
-    description: "Equivale a R$ 20,82/mês",
+    description: "Equivale a R$ 20,82 por mês",
     href: checkoutLinks.annual,
     cta: "Assinar anual",
     featured: true,
-    badge: "Melhor valor -30%"
+    badge: "30% de economia"
   },
   {
     name: "Trimestral",
     price: "R$ 79,90",
-    suffix: "/trim",
-    description: "Equivale a R$ 26,63/mês",
+    suffix: "/trimestre",
+    description: "Equivale a R$ 26,63 por mês",
     href: checkoutLinks.quarterly,
     cta: "Assinar trimestral"
   }
@@ -98,304 +95,325 @@ const pricingPlans = [
 const faqs = [
   {
     question: "Serve apenas para concurso?",
-    answer: "Não. Concurso é o primeiro foco, mas o PlanoTracker também funciona para vestibular, OAB, residência, ENEM e qualquer prova com edital ou lista de conteúdos."
+    answer:
+      "Não. Concurso é o primeiro foco, mas o PlanoTracker também funciona para vestibular, OAB, residência, ENEM e qualquer prova com edital ou lista de conteúdos."
   },
   {
-    question: "Qual a diferença entre os planos?",
-    answer: "Nenhuma diferença de recurso. Todos liberam o sistema completo. A diferença é apenas o preço mensal equivalente."
+    question: "Qual é a diferença entre os planos?",
+    answer:
+      "Nenhuma diferença de recurso. Todos liberam o sistema completo. A diferença é apenas o período de cobrança e o valor mensal equivalente."
   },
   {
     question: "Posso editar o plano depois?",
-    answer: "Sim. Depois que a IA cria o plano, você pode alterar disciplinas, metas, prazos, sessões e progresso manualmente."
+    answer:
+      "Sim. Depois que a IA cria a primeira versão, você pode alterar o calendário, as disciplinas, os pesos, as metas e registrar suas sessões de estudo."
   },
   {
     question: "O pagamento é seguro?",
-    answer: "Sim. A compra é processada pela Cakto. Depois do pagamento aprovado, o acesso ao PlanoTracker é liberado para usar o sistema."
+    answer:
+      "Sim. A compra é processada pela Cakto. Depois da aprovação do pagamento, o acesso é vinculado ao e-mail utilizado no checkout."
   }
+];
+
+const weekBlocks = [
+  ["subject-green", "subject-coral", "subject-blue"],
+  ["subject-lime", "subject-green", "subject-coral"],
+  ["subject-blue", "subject-navy", "subject-green"],
+  ["subject-coral", "subject-lime", "subject-blue"],
+  ["subject-green", "subject-blue", "subject-lime"],
+  ["subject-navy", "subject-green"],
+  ["subject-soft"]
 ];
 
 export default function HomePage() {
   return (
     <main className="sales-page">
       <header className="sales-nav">
-        <Link className="sales-brand" href="/">
+        <Link className="sales-brand" href="/" aria-label="PlanoTracker, página inicial">
           <img src="/plano-tracker.png" alt="" aria-hidden="true" />
           <strong>PlanoTracker</strong>
         </Link>
         <nav aria-label="Navegação da página">
-          <a href="#features">Recursos</a>
           <a href="#how-it-works">Como funciona</a>
-          <Link href="/quiz">Diagnóstico</Link>
+          <a href="#features">Recursos</a>
           <a href="#pricing">Planos</a>
-          <a href="#faq">FAQ</a>
+          <Link href="/quiz">Diagnóstico</Link>
         </nav>
         <div className="sales-nav-actions">
           <Link className="sales-login" href="/login">
             Entrar
           </Link>
           <a className="sales-button small" href="#pricing">
-            Começar
+            Começar agora <ArrowRight size={17} />
           </a>
         </div>
       </header>
 
       <section className="sales-hero">
+        <div className="hero-signal hero-signal-top" aria-hidden="true" />
+        <div className="hero-signal hero-signal-bottom" aria-hidden="true" />
+
         <div className="sales-hero-copy">
           <p className="sales-kicker">
-            <Sparkles size={16} /> Planejamento de estudos com IA
+            <SignalBars /> Plano de estudo que cabe na vida real
           </p>
-          <h1>Transforme qualquer edital em um plano de estudo completo.</h1>
+          <h1>Seu plano de estudo, do edital até a prova.</h1>
           <p className="sales-lead">
-            O PlanoTracker organiza disciplinas, subtítulos, pesos e calendário para quem precisa estudar com
-            clareza até o dia da prova.
+            A IA organiza matérias, prioridades e sessões na sua rotina. Você abre o painel e sabe o que estudar hoje,
+            sem perder o controle quando a semana muda.
           </p>
           <div className="sales-actions">
             <a className="sales-button" href="#pricing">
-              Escolher plano <ArrowRight size={20} />
+              Montar meu plano <ArrowRight size={20} />
             </a>
-            <a className="sales-button secondary" href="#how-it-works">
-              Ver como funciona
-            </a>
+            <Link className="sales-button secondary" href="/quiz">
+              Fazer diagnóstico
+            </Link>
           </div>
           <div className="sales-proof-row">
             <span>
-              <CheckCircle2 size={16} /> Calendário editável
-            </span>
-            <span>
-              <ShieldCheck size={16} /> Garantia 7 dias
-            </span>
-            <span>
               <Clock3 size={16} /> Plano em minutos
             </span>
+            <span>
+              <CheckCircle2 size={16} /> Totalmente editável
+            </span>
+            <span>
+              <ShieldCheck size={16} /> 7 dias de garantia
+            </span>
+          </div>
+
+          <div className="hero-metrics" aria-label="Exemplo de acompanhamento">
+            <div>
+              <span>Hoje</span>
+              <strong>3h20</strong>
+            </div>
+            <div>
+              <span>Até a prova</span>
+              <strong>68 dias</strong>
+            </div>
+            <div>
+              <span>Progresso</span>
+              <strong>42%</strong>
+            </div>
           </div>
         </div>
 
-        <div className="sales-product-shot" aria-label="Prévia ilustrativa do PlanoTracker">
+        <div className="sales-product-shot" aria-label="Prévia ilustrativa do painel PlanoTracker">
           <div className="mock-window">
+            <div className="mock-titlebar">
+              <span className="mock-dots" aria-hidden="true"><i /><i /><i /></span>
+              <strong>PLANO EM ANDAMENTO</strong>
+              <span>SEMANA 04</span>
+            </div>
             <div className="mock-sidebar">
-              <strong>PlanoTracker</strong>
-              <span>Painel</span>
-              <span>Criar plano</span>
-              <span>Calendário</span>
-              <span>Metas</span>
-              <span>Disciplinas</span>
+              <img src="/plano-tracker.png" alt="" aria-hidden="true" />
+              <span className="mock-nav-active"><CalendarDays size={18} /></span>
+              <span><Route size={18} /></span>
+              <span><ListChecks size={18} /></span>
+              <span><BarChart3 size={18} /></span>
+              <small>GP</small>
             </div>
             <div className="mock-main">
               <div className="mock-top">
                 <div>
-                  <small>Prévia ilustrativa</small>
-                  <strong>Painel</strong>
+                  <small>Reta final</small>
+                  <strong>Minha semana</strong>
                 </div>
-                <button>Nova sessão</button>
+                <span className="mock-sync"><i /> Rotina sincronizada</span>
               </div>
               <div className="mock-stats">
-                <span>Horas estudadas <strong>18h 40min</strong></span>
-                <span>Metas concluídas <strong>42/120</strong></span>
+                <span>Hoje <strong>3h20</strong></span>
+                <span>Faltam <strong>68 dias</strong></span>
+                <span>Progresso <strong>42%</strong></span>
               </div>
-              <div className="mock-card large">
-                <div className="mock-card-head">
-                  <strong>Foco de hoje</strong>
-                  <small>Ver calendário</small>
+              <div className="mock-content">
+                <div className="mock-week-panel">
+                  <div className="mock-section-head"><strong>Ritmo da semana</strong><span>20 - 26 JUL</span></div>
+                  <div className="mock-week-days">
+                    {weekBlocks.map((blocks, index) => (
+                      <div className={index === 1 ? "is-today" : ""} key={index}>
+                        <span>{["SEG", "TER", "QUA", "QUI", "SEX", "SÁB", "DOM"][index]}</span>
+                        <strong>{20 + index}</strong>
+                        <div className="mock-blocks">
+                          {blocks.map((block, blockIndex) => <i className={block} key={`${block}-${blockIndex}`} />)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <StudyPreview period="Manhã" subject="Direito Constitucional" topic="Direitos fundamentais" />
-                <StudyPreview period="Tarde" subject="Administrativo" topic="Atos administrativos" />
-                <StudyPreview period="Noite" subject="Questões" topic="Revisão por assunto" />
+                <div className="mock-agenda">
+                  <div className="mock-section-head"><strong>Hoje</strong><span>3 SESSÕES</span></div>
+                  <StudyPreview tone="green" period="Manhã" subject="Direito Constitucional" topic="Direitos fundamentais" />
+                  <StudyPreview tone="coral" period="Tarde" subject="Administrativo" topic="Atos administrativos" />
+                  <StudyPreview tone="lime" period="Noite" subject="30 questões" topic="Revisão da matéria" />
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="sales-section stats-band">
-        <div>
-          <strong>1 edital</strong>
-          <span>entrada inicial</span>
-        </div>
-        <div>
-          <strong>3 blocos</strong>
-          <span>rotina flexível</span>
-        </div>
-        <div>
-          <strong>100%</strong>
-          <span>editável depois da IA</span>
-        </div>
-        <div>
-          <strong>ilimitado</strong>
-          <span>nos planos pagos</span>
-        </div>
+      <section className="sales-route-strip" aria-label="Da análise ao acompanhamento">
+        <span><strong>01</strong> Edital analisado</span>
+        <span><strong>02</strong> Rotina calibrada</span>
+        <span><strong>03</strong> Semana distribuída</span>
+        <span><strong>04</strong> Progresso visível</span>
       </section>
 
-      <section className="sales-section" id="features">
+      <section className="sales-section problem-section" id="features">
         <div className="sales-section-title">
-          <p className="sales-kicker">Tudo em um lugar</p>
-          <h2>Do edital confuso ao plano executável.</h2>
+          <p className="sales-kicker"><Target size={16} /> Clareza antes de começar</p>
+          <h2>Você não precisa decidir tudo de novo a cada sessão.</h2>
           <p>
-            A pessoa não precisa mais ficar quebrando a cabeça para dividir subtítulos, pesos e revisões. O sistema
-            organiza a primeira versão e deixa tudo ajustável.
+            O edital costuma dizer o que será cobrado, mas não como distribuir centenas de tópicos na rotina. O
+            PlanoTracker transforma esse volume em próximas ações visíveis.
           </p>
         </div>
-        <div className="feature-grid">
+
+        <div className="feature-ledger">
           {features.map((feature) => (
-            <article className="feature-card" key={feature.title}>
-              <span>{feature.icon}</span>
-              <h3>{feature.title}</h3>
-              <p>{feature.text}</p>
+            <article className="feature-card" key={feature.number}>
+              <span className="feature-number">{feature.number}</span>
+              <span className="feature-icon">{feature.icon}</span>
+              <div>
+                <h3>{feature.title}</h3>
+                <p>{feature.text}</p>
+              </div>
             </article>
           ))}
         </div>
       </section>
 
       <section className="sales-section split-section">
-        <div>
-          <p className="sales-kicker">Sem planilha improvisada</p>
-          <h2>O estudo fica dividido por prioridade, data e ação.</h2>
+        <div className="split-copy">
+          <p className="sales-kicker"><CalendarDays size={16} /> Uma semana que você entende de relance</p>
+          <h2>Cada bloco tem hora, matéria e intenção.</h2>
           <p>
-            Em vez de uma lista gigante de matérias, o aluno recebe um painel com o que estudar hoje, quais tópicos
-            faltam, quanto já avançou e onde precisa fazer mais questões.
+            Teoria, lei seca, revisão ou questões entram no período definido por você. As cores ajudam a enxergar o
+            ritmo sem transformar seu cronograma em uma planilha interminável.
           </p>
           <ul className="check-list">
-            <li>
-              <CheckCircle2 size={20} /> Tópicos extraídos do edital
-            </li>
-            <li>
-              <CheckCircle2 size={20} /> Matérias com peso e progresso
-            </li>
-            <li>
-              <CheckCircle2 size={20} /> Metas editáveis por prazo
-            </li>
-            <li>
-              <CheckCircle2 size={20} /> Sessões de estudo e questões
-            </li>
+            <li><CheckCircle2 size={19} /> Dias e períodos configuráveis</li>
+            <li><CheckCircle2 size={19} /> Matérias priorizadas por peso</li>
+            <li><CheckCircle2 size={19} /> Calendário criado até a véspera da prova</li>
+            <li><CheckCircle2 size={19} /> Ajustes manuais sempre disponíveis</li>
           </ul>
         </div>
-        <div className="study-board">
-          <div className="board-row header">
-            <span>Dia</span>
-            <span>Manhã</span>
-            <span>Tarde</span>
-            <span>Noite</span>
+
+        <div className="study-board" aria-label="Exemplo de uma semana de estudos">
+          <div className="board-header">
+            <div><small>SEMANA 04</small><strong>20 - 26 JUL</strong></div>
+            <span>18h40 planejadas</span>
           </div>
-          {["Segunda", "Terça", "Quarta", "Quinta"].map((day, index) => (
-            <div className="board-row" key={day}>
-              <strong>{day}</strong>
-              <span>{["Penal", "Civil", "Tributário", "Administrativo"][index]}</span>
-              <span>{["Processo Penal", "Processo Civil", "Constitucional", "Financeiro"][index]}</span>
-              <span>Questões</span>
-            </div>
-          ))}
+          <div className="board-grid">
+            {weekBlocks.map((blocks, index) => (
+              <div className={`board-day ${index === 1 ? "active" : ""}`} key={index}>
+                <span>{["S", "T", "Q", "Q", "S", "S", "D"][index]}</span>
+                <strong>{20 + index}</strong>
+                <div>{blocks.map((block, blockIndex) => <i className={block} key={`${block}-${blockIndex}`} />)}</div>
+              </div>
+            ))}
+          </div>
+          <div className="board-legend">
+            <span><i className="subject-green" /> Base do plano</span>
+            <span><i className="subject-coral" /> Prioridade</span>
+            <span><i className="subject-blue" /> Questões</span>
+            <span><i className="subject-lime" /> Revisão</span>
+          </div>
         </div>
       </section>
 
       <section className="sales-section how-section" id="how-it-works">
         <div className="sales-section-title">
-          <p className="sales-kicker">Como funciona</p>
-          <h2>3 passos para sair estudando.</h2>
+          <p className="sales-kicker"><Route size={16} /> Como funciona</p>
+          <h2>Do arquivo ao primeiro dia de estudo.</h2>
         </div>
         <div className="steps-grid">
-          <article>
-            <span>1</span>
-            <h3>Escolha um plano</h3>
-            <p>O aluno assina mensal, trimestral ou anual e cria o acesso ao PlanoTracker.</p>
-          </article>
-          <article>
-            <span>2</span>
-            <h3>Cole o edital</h3>
-            <p>Informe prova, data, horas por dia e rotina desejada. A IA monta a primeira versão.</p>
-          </article>
-          <article>
-            <span>3</span>
-            <h3>Acompanhe o progresso</h3>
-            <p>Use painel, calendário, metas, disciplinas e sessões para manter o estudo visível.</p>
-          </article>
+          <article><span>01</span><div><h3>Envie o edital</h3><p>Anexe o PDF ou cole o conteúdo programático da sua prova.</p></div></article>
+          <article><span>02</span><div><h3>Descreva sua rotina</h3><p>Informe prazo, dias disponíveis e como prefere estudar em cada período.</p></div></article>
+          <article><span>03</span><div><h3>Receba sua rota</h3><p>A IA organiza o calendário e você ajusta tudo conforme a vida real.</p></div></article>
         </div>
       </section>
 
       <section className="sales-section evidence-section">
         <div className="sales-section-title">
-          <p className="sales-kicker">Contexto e evidência</p>
-          <h2>Sem promessas mágicas. Organização para executar melhor.</h2>
-          <p>O PlanoTracker não garante aprovação. Ele atua na parte que pode ser organizada: transformar conteúdo, prazo e rotina em ações de estudo acompanháveis.</p>
+          <p className="sales-kicker"><BookOpenCheck size={16} /> Sem promessa mágica</p>
+          <h2>Organização não substitui o estudo. Ela ajuda o estudo a acontecer.</h2>
+          <p>
+            O PlanoTracker não garante aprovação. Ele organiza conteúdo, prazo e rotina para reduzir improvisos e
+            tornar o avanço mais fácil de acompanhar.
+          </p>
         </div>
         <div className="evidence-grid">
           <article className="evidence-card">
             <span className="evidence-icon"><Newspaper size={22} /></span>
             <p className="evidence-label">Dados oficiais</p>
             <h3>2,1 milhões de inscritos para 6.640 vagas no primeiro CPNU.</h3>
-            <p>A dimensão do concurso ajuda a mostrar por que clareza de prioridade e consistência importam em seleções concorridas.</p>
-            <a href="https://www.gov.br/gestao/pt-br/assuntos/noticias/2024/agosto/com-cerca-de-1-milhao-de-participantes-concurso-nacional-unificado-se-torna-a-maior-selecao-publica-da-historia-do-pais/" target="_blank" rel="noreferrer">Ler no Ministério da Gestão <ExternalLink size={15} /></a>
+            <p>A dimensão da seleção mostra por que prioridade e consistência importam em provas concorridas.</p>
+            <a href="https://www.gov.br/gestao/pt-br/assuntos/noticias/2024/agosto/com-cerca-de-1-milhao-de-participantes-concurso-nacional-unificado-se-torna-a-maior-selecao-publica-da-historia-do-pais/" target="_blank" rel="noreferrer">
+              Ministério da Gestão <ExternalLink size={15} />
+            </a>
           </article>
           <article className="evidence-card research">
             <span className="evidence-icon"><BookOpenCheck size={22} /></span>
             <p className="evidence-label">Ciência da aprendizagem</p>
             <h3>Estudar de forma distribuída tende a superar o estudo concentrado.</h3>
-            <p>Uma meta-análise de 2025 reuniu 22 relatórios, mais de 3 mil participantes e encontrou efeito moderado a favor da prática distribuída.</p>
-            <a href="https://pubmed.ncbi.nlm.nih.gov/40564553/" target="_blank" rel="noreferrer">Consultar estudo no PubMed <ExternalLink size={15} /></a>
+            <p>Uma meta-análise de 2025 reuniu mais de 3 mil participantes e encontrou efeito favorável à prática distribuída.</p>
+            <a href="https://pubmed.ncbi.nlm.nih.gov/40564553/" target="_blank" rel="noreferrer">
+              Consultar no PubMed <ExternalLink size={15} />
+            </a>
           </article>
         </div>
       </section>
 
       <section className="sales-section pricing-section" id="pricing">
         <div className="sales-section-title">
-          <p className="sales-kicker">Planos</p>
-          <h2>Escolha o período e comece hoje.</h2>
-          <p>Todos os planos têm acesso completo. Quanto mais longo, menor o valor mensal equivalente.</p>
+          <p className="sales-kicker"><Sparkles size={16} /> Acesso completo</p>
+          <h2>Um único produto. Três formas de assinar.</h2>
+          <p>Todos os planos liberam os mesmos recursos e permitem criar planos de estudo ilimitados.</p>
         </div>
         <div className="landing-pricing-grid">
           {pricingPlans.map((plan) => (
             <article className={`landing-price-card ${plan.featured ? "featured" : ""}`} key={plan.name}>
               {plan.badge ? <div className="landing-price-badge">{plan.badge}</div> : null}
-              <h3>{plan.name}</h3>
-              <div className="landing-price">
-                <strong>{plan.price}</strong>
-                <span>{plan.suffix}</span>
-              </div>
+              <p className="price-period">{plan.name}</p>
+              <div className="landing-price"><strong>{plan.price}</strong><span>{plan.suffix}</span></div>
               <p>{plan.description}</p>
               <ul>
-                {planFeatures.map((feature) => (
-                  <li key={feature}>
-                    <CheckCircle2 size={20} /> {feature}
-                  </li>
-                ))}
+                {planFeatures.map((feature) => <li key={feature}><CheckCircle2 size={19} /> {feature}</li>)}
               </ul>
-              <Link className={`sales-button ${plan.featured ? "" : "secondary dark"}`} href={plan.href}>
-                {plan.cta} <ArrowRight size={20} />
-              </Link>
+              <a className={`sales-button ${plan.featured ? "" : "secondary dark"}`} href={plan.href}>
+                {plan.cta} <ArrowRight size={19} />
+              </a>
             </article>
           ))}
         </div>
         <div className="trust-row">
-          <span>
-            <LockKeyhole size={18} /> Pagamento seguro Cakto
-          </span>
-          <span>
-            <ShieldCheck size={18} /> Garantia 7 dias
-          </span>
-          <span>
-            <GraduationCap size={18} /> Planos ilimitados
-          </span>
+          <span><LockKeyhole size={18} /> Pagamento processado pela Cakto</span>
+          <span><ShieldCheck size={18} /> 7 dias de garantia</span>
+          <span><GraduationCap size={18} /> Planos de estudo ilimitados</span>
         </div>
       </section>
 
       <section className="sales-section guarantee-section">
-        <ShieldCheck size={34} />
+        <div className="guarantee-number">07</div>
         <div>
-          <p className="sales-kicker">Garantia incondicional</p>
-          <h2>7 dias para testar com calma.</h2>
-          <p>Se o PlanoTracker não ajudar a organizar seus estudos, você pode pedir reembolso dentro do período de garantia.</p>
+          <p className="sales-kicker">Dias para testar</p>
+          <h2>Conheça o PlanoTracker com calma.</h2>
+          <p>Se ele não ajudar a organizar seus estudos, você pode pedir reembolso dentro do período de garantia.</p>
         </div>
+        <ShieldCheck size={38} />
       </section>
 
       <section className="sales-section faq-section" id="faq">
         <div className="sales-section-title">
-          <p className="sales-kicker">
-            <MessageCircleQuestion size={16} /> Perguntas frequentes
-          </p>
-          <h2>Tirando as principais dúvidas.</h2>
+          <p className="sales-kicker"><MessageCircleQuestion size={16} /> Perguntas frequentes</p>
+          <h2>Antes de começar.</h2>
         </div>
         <div className="faq-list">
-          {faqs.map((faq) => (
+          {faqs.map((faq, index) => (
             <details key={faq.question}>
-              <summary>{faq.question}</summary>
+              <summary><span>{String(index + 1).padStart(2, "0")}</span>{faq.question}</summary>
               <p>{faq.answer}</p>
             </details>
           ))}
@@ -403,19 +421,22 @@ export default function HomePage() {
       </section>
 
       <section className="final-cta">
-        <h2>Seu edital não precisa virar bagunça.</h2>
-        <p>Escolha um plano, crie seu acesso e deixe o PlanoTracker montar a primeira rota de estudo.</p>
-        <a className="sales-button" href="#pricing">
-          Ver planos <ArrowRight size={20} />
-        </a>
+        <SignalBars />
+        <p className="sales-kicker">Sua próxima sessão começa antes de sentar para estudar</p>
+        <h2>Abra o painel e saiba qual é o próximo passo.</h2>
+        <p>Transforme o edital em um plano claro, acompanhe o avanço e ajuste a rota sem começar do zero.</p>
+        <a className="sales-button" href="#pricing">Ver planos <ArrowRight size={20} /></a>
       </section>
 
       <footer className="sales-footer">
+        <Link className="sales-brand footer-brand" href="/">
+          <img src="/plano-tracker.png" alt="" aria-hidden="true" />
+          <strong>PlanoTracker</strong>
+        </Link>
         <span>© 2026 PlanoTracker</span>
         <nav>
           <Link href="/login">Entrar</Link>
           <a href="#pricing">Planos</a>
-          <a href="#faq">FAQ</a>
           <Link href="/termos">Termos</Link>
           <Link href="/privacidade">Privacidade</Link>
           <a href="mailto:gustavorossiniports@gmail.com">Suporte</a>
@@ -425,14 +446,27 @@ export default function HomePage() {
   );
 }
 
-function StudyPreview({ period, subject, topic }: { period: string; subject: string; topic: string }) {
+function SignalBars() {
+  return <span className="signal-bars" aria-hidden="true"><i /><i /><i /></span>;
+}
+
+function StudyPreview({
+  period,
+  subject,
+  topic,
+  tone
+}: {
+  period: string;
+  subject: string;
+  topic: string;
+  tone: "green" | "coral" | "lime";
+}) {
   return (
-    <div className="study-preview">
+    <div className={`study-preview tone-${tone}`}>
+      <i aria-hidden="true" />
       <span>{period}</span>
-      <div>
-        <strong>{subject}</strong>
-        <small>{topic}</small>
-      </div>
+      <div><strong>{subject}</strong><small>{topic}</small></div>
+      <CheckCircle2 size={17} />
     </div>
   );
 }

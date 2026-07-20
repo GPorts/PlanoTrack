@@ -72,8 +72,13 @@ export function AppGate() {
   if (state === "allowed") return <PlanoTrackerApp userId={userId} />;
 
   return (
-    <main className="page">
-      <section className="card access-card">
+    <main className="access-page">
+      <div className="access-shell">
+        <Link className="access-brand" href="/">
+          <img src="/plano-tracker.png" alt="" aria-hidden="true" />
+          <div><strong>PlanoTracker</strong><span>Sua rota de estudos</span></div>
+        </Link>
+        <section className="card access-card">
         {state === "loading" ? (
           <>
             <p className="eyebrow">Validando acesso</p>
@@ -109,12 +114,13 @@ export function AppGate() {
 
         {state === "error" ? (
           <>
-            <p className="eyebrow">Erro de configuração</p>
+            <p className="eyebrow">Não foi possível conectar</p>
             <h1>Não foi possível validar o acesso</h1>
-            <p className="muted">Confira as variáveis do Supabase na Vercel e tente novamente.</p>
+            <p className="muted">Tente novamente em alguns instantes. Se o problema continuar, entre em contato com o suporte.</p>
           </>
         ) : null}
-      </section>
+        </section>
+      </div>
     </main>
   );
 }

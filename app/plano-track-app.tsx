@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, ClipboardList, LayoutDashboard, ListChecks, LogOut, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
+import { CalendarDays, Check, ClipboardList, LayoutDashboard, ListChecks, LogOut, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { createBrowserSupabaseClient } from "@/lib/supabase";
 import type { GeneratedPlan, ScheduleItem, SubjectInput } from "@/lib/types";
 
@@ -83,8 +83,8 @@ type PlanOption = {
 const storedPlanSelect =
   "id,title,exam_date,summary,subjects(id,name,questions,weight,color,progress,topics(id,title,status,due_date,position)),schedule_items(id,date,period,kind,minutes,subject_name,topic_title),study_sessions(id,studied_at,subject_name,minutes,questions,correct,notes)";
 
-const colors = ["#176b5f", "#2563eb", "#149b7e", "#0f766e", "#d97706", "#0891b2", "#2f6f43", "#4f46e5", "#15803d", "#64748b"];
-const calendarColors = ["#176b5f", "#2458a6", "#0f766e", "#6d3fb6", "#2f6f43", "#0e7490", "#8a5a12"];
+const colors = ["#087c68", "#1f5eff", "#f65d5b", "#0b1f3a", "#b4ca18", "#0e8aa5", "#4f46e5", "#187b4d", "#d97706", "#64748b"];
+const calendarColors = ["#087c68", "#1f5eff", "#f65d5b", "#0b1f3a", "#82960d", "#0e8aa5", "#4f46e5"];
 const initialSubjects: Subject[] = [];
 const initialSchedule: ScheduleItem[] = [];
 const initialGoals: Goal[] = [];
@@ -624,11 +624,14 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
           <img className="planner-logo" src="/plano-tracker.png" alt="" aria-hidden="true" />
           <div>
             <strong>PlanoTracker</strong>
-            <span>Estudo organizado</span>
+            <span>Sua rota até a prova</span>
           </div>
         </div>
 
+        <div className="planner-sidebar-signal" aria-hidden="true"><i /><i /><i /><i /></div>
+
         <nav className="planner-nav" aria-label="Navegação principal">
+          <span className="planner-nav-label">Organização</span>
           <NavButton active={view === "dashboard"} icon={<LayoutDashboard size={18} />} label="Painel" onClick={() => setView("dashboard")} />
           <NavButton active={view === "create"} icon={<Sparkles size={18} />} label="Criar plano" onClick={() => setView("create")} />
           <NavButton active={view === "calendar"} icon={<CalendarDays size={18} />} label="Calendário" onClick={() => setView("calendar")} />
@@ -673,7 +676,7 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
               </select>
             ) : null}
             <button className="primary-button" type="button" onClick={() => setView("sessions")}>
-              Nova sessão
+              <Plus size={18} /> Nova sessão
             </button>
           </div>
         </header>
@@ -775,6 +778,8 @@ function Dashboard({
         <Stat label="Taxa de acerto" value={`${stats.accuracy}%`} />
         <Stat label="Metas concluídas" value={`${stats.doneGoals}/${goals.length}`} />
       </div>
+
+      <WeeklyOverview schedule={schedule} onOpenCalendar={() => setView("calendar")} />
 
       <div className="content-grid">
         <section className="panel">
@@ -1022,7 +1027,7 @@ function Goals({
             <p className="muted">Acompanhe entregas, revisões e simulados.</p>
           </div>
           <button className="primary-button" type="button" onClick={() => openGoalModal()}>
-            Nova meta
+            <Plus size={18} /> Nova meta
           </button>
         </div>
         <div className="stack-list">
@@ -1044,13 +1049,13 @@ function Goals({
                     onPersistGoal(updatedGoal).catch(() => onStorageError("O status mudou na tela, mas não foi possível salvá-lo no Supabase."));
                   }}
                 >
-                  OK
+                  <Check size={18} />
                 </button>
-                <button className="icon-button" type="button" title="Editar" onClick={() => openGoalModal(goal)}>
-                  E
+                <button className="icon-button" type="button" title="Editar" aria-label={`Editar meta ${goal.title}`} onClick={() => openGoalModal(goal)}>
+                  <Pencil size={18} />
                 </button>
-                <button className="icon-button" type="button" title="Excluir" onClick={() => setGoalToDelete(goal)}>
-                  X
+                <button className="icon-button danger-icon-button" type="button" title="Excluir" aria-label={`Excluir meta ${goal.title}`} onClick={() => setGoalToDelete(goal)}>
+                  <Trash2 size={18} />
                 </button>
               </div>
             </article>
@@ -1102,7 +1107,7 @@ function Subjects({
             <p className="muted">Defina peso, cor e progresso manual de cada matéria.</p>
           </div>
           <button className="primary-button" type="button" onClick={() => openSubjectModal()}>
-            Nova disciplina
+            <Plus size={18} /> Nova disciplina
           </button>
         </div>
         <div className="subject-cards">
@@ -1114,11 +1119,11 @@ function Subjects({
                   <span>{subject.name}</span>
                 </div>
                 <div className="item-actions">
-                  <button className="icon-button" type="button" title="Editar" onClick={() => openSubjectModal(subject)}>
-                    E
+                  <button className="icon-button" type="button" title="Editar" aria-label={`Editar disciplina ${subject.name}`} onClick={() => openSubjectModal(subject)}>
+                    <Pencil size={18} />
                   </button>
-                  <button className="icon-button" type="button" title="Excluir" onClick={() => setSubjectToDelete(subject)}>
-                    X
+                  <button className="icon-button danger-icon-button" type="button" title="Excluir" aria-label={`Excluir disciplina ${subject.name}`} onClick={() => setSubjectToDelete(subject)}>
+                    <Trash2 size={18} />
                   </button>
                 </div>
               </div>
@@ -1604,6 +1609,66 @@ function Stat({ label, value }: { label: string; value: string }) {
   return <article className="stat-card"><span>{label}</span><strong>{value}</strong></article>;
 }
 
+function WeeklyOverview({ schedule, onOpenCalendar }: { schedule: ScheduleItem[]; onOpenCalendar: () => void }) {
+  if (!schedule.length) return null;
+
+  const today = todayIso();
+  const scheduledDates = [...new Set(schedule.map((slot) => slot.date))].sort();
+  const anchor = scheduledDates.find((date) => date >= today) || scheduledDates[scheduledDates.length - 1];
+  const week = weekDates(anchor);
+  const weekSchedule = schedule.filter((slot) => week.includes(slot.date));
+  const totalMinutes = weekSchedule.reduce((sum, slot) => sum + slot.minutes, 0);
+
+  return (
+    <section className="weekly-overview panel" aria-labelledby="weekly-overview-title">
+      <div className="weekly-overview-header">
+        <div>
+          <span className="weekly-eyebrow">Ritmo da semana</span>
+          <h2 id="weekly-overview-title">Minha semana</h2>
+          <p>{formatDate(week[0]).slice(0, 5)} a {formatDate(week[6]).slice(0, 5)} · {formatMinutes(totalMinutes)} planejadas</p>
+        </div>
+        <button className="text-button" type="button" onClick={onOpenCalendar}>
+          Ver calendário
+        </button>
+      </div>
+
+      <div className="weekly-days" role="list" aria-label="Resumo do plano desta semana">
+        {week.map((date) => {
+          const slots = weekSchedule.filter((slot) => slot.date === date);
+          const isToday = date === today;
+          const isAnchor = date === anchor;
+
+          return (
+            <button
+              className={`weekly-day ${isToday ? "today" : ""} ${isAnchor && !isToday ? "active" : ""}`}
+              type="button"
+              role="listitem"
+              key={date}
+              onClick={onOpenCalendar}
+              aria-label={`${weekdayShort(date)}, ${formatDate(date)}: ${slots.length} ${slots.length === 1 ? "sessão" : "sessões"}`}
+            >
+              <span className="weekly-day-name">{weekdayShort(date)}</span>
+              <strong>{Number(date.slice(-2))}</strong>
+              <span className="weekly-blocks" aria-hidden="true">
+                {slots.slice(0, 3).map((slot, index) => (
+                  <i
+                    key={`${slot.period}-${index}`}
+                    style={{ background: subjectCalendarColor(slot.subject) }}
+                    title={`${displayPeriod(slot.period)}: ${slot.subject}`}
+                  />
+                ))}
+              </span>
+              <span className="weekly-session-count">
+                {slots.length ? `${slots.length} ${slots.length === 1 ? "sessão" : "sessões"}` : "Livre"}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function StudySlot({ slot }: { slot: ScheduleItem }) {
   return (
     <article className="session-item">
@@ -1707,6 +1772,36 @@ function todayIso() {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function localDateIso(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function weekDates(anchor: string) {
+  const [year, month, day] = anchor.split("-").map(Number);
+  const start = new Date(year, month - 1, day);
+  const dayOfWeek = start.getDay();
+  start.setDate(start.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    return localDateIso(date);
+  });
+}
+
+function weekdayShort(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][new Date(year, month - 1, day).getDay()];
+}
+
+function subjectCalendarColor(subject: string) {
+  const hash = [...subject].reduce((sum, character) => sum + character.charCodeAt(0), 0);
+  return calendarColors[hash % calendarColors.length];
 }
 
 function tomorrowIso() {

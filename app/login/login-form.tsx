@@ -85,8 +85,8 @@ export function LoginForm() {
         <h1>{mode === "signin" ? "Bem-vindo de volta" : "Criar sua conta"}</h1>
         <p>
           {mode === "signin"
-            ? "Acesse seu painel de estudos e continue sua organização."
-            : "Crie seu acesso para entrar no painel e montar seus planos de estudo."}
+            ? "Seu plano está esperando por você."
+            : "Comece sua rota de estudos no PlanoTracker."}
         </p>
       </div>
 
@@ -128,6 +128,8 @@ export function LoginForm() {
       <button className="button" type="submit" disabled={loading}>
         {loading ? "Aguarde..." : mode === "signin" ? "Entrar" : "Criar conta"}
       </button>
+
+      <p className="login-security-note">Acesso protegido e vinculado ao seu e-mail.</p>
     </form>
   );
 }

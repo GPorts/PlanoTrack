@@ -303,7 +303,7 @@ export default function QuizPage() {
             </div>
 
             <div className="quiz-options" role="radiogroup" aria-label={question.title}>
-              {question.options.map((option) => {
+              {question.options.map((option, index) => {
                 const selected = answers[question.id] === option.value;
                 return (
                   <button
@@ -315,7 +315,7 @@ export default function QuizPage() {
                     disabled={isTransitioning}
                     onClick={() => selectAnswer(option.value)}
                   >
-                    <span className="quiz-option-check">{selected ? <Check size={17} /> : null}</span>
+                    <span className="quiz-option-index">{selected ? <Check size={17} /> : String(index + 1).padStart(2, "0")}</span>
                     <span>
                       <strong>{option.label}</strong>
                       {option.detail ? <small>{option.detail}</small> : null}
@@ -375,6 +375,11 @@ function QuizIntro({ onStart }: { onStart: () => void }) {
         <div className="quiz-visual-header">
           <img src="/plano-tracker.png" alt="" aria-hidden="true" />
           <div><span>Seu diagnóstico</span><strong>Plano de estudo viável</strong></div>
+        </div>
+        <div className="quiz-weekline" aria-hidden="true">
+          {["S", "T", "Q", "Q", "S", "S", "D"].map((day, index) => (
+            <span className={index === 1 ? "active" : ""} key={`${day}-${index}`}><small>{day}</small><i /></span>
+          ))}
         </div>
         <div className="quiz-visual-step active"><span>01</span><div><strong>Perfil</strong><small>Objetivo, prazo e tempo disponível</small></div><Check size={18} /></div>
         <div className="quiz-visual-step"><span>02</span><div><strong>Diagnóstico</strong><small>Gargalos de clareza e constância</small></div><BrainCircuit size={18} /></div>
