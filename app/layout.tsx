@@ -4,7 +4,7 @@ import "./visual-refresh.css";
 import { PwaRegister } from "./pwa-register";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://planotrack.vercel.app"),
+  metadataBase: new URL("https://www.planotracker.online"),
   title: "PlanoTracker",
   description: "Transforme seu edital em um plano de estudo claro, flexível e acompanhado até a prova.",
   openGraph: {
