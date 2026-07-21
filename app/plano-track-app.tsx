@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Check, ClipboardList, LayoutDashboard, ListChecks, LogOut, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
+import { BellRing, Brain, CalendarDays, ChartSpline, Check, CirclePlay, ClipboardList, Download, LayoutDashboard, LibraryBig, ListChecks, LogOut, NotebookPen, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { createBrowserSupabaseClient } from "@/lib/supabase";
-import type { GeneratedPlan, ScheduleItem, SubjectInput } from "@/lib/types";
+import type { ErrorEntry, GeneratedPlan, ReviewState, ScheduleItem, SimulationRecord, StudySessionRecord, SubjectInput } from "@/lib/types";
+import { AdaptiveOverview, ErrorsView, MaterialsView, RecoveryModal, ReviewsView, SessionExecutionModal, SimulationsView } from "./adaptive-features";
 
-type View = "dashboard" | "create" | "calendar" | "goals" | "subjects" | "sessions";
+type View = "dashboard" | "create" | "calendar" | "goals" | "subjects" | "sessions" | "reviews" | "errors" | "simulations" | "materials";
 
 type Subject = SubjectInput & {
   id?: string;
@@ -23,15 +24,7 @@ type Goal = {
   done: boolean;
 };
 
-type Session = {
-  id: string;
-  date: string;
-  subject: string;
-  minutes: number;
-  questions: number;
-  correct: number;
-  notes: string;
-};
+type Session = StudySessionRecord;
 
 type StoredPlan = {
   id: string;
@@ -55,6 +48,7 @@ type StoredPlan = {
   }>;
   schedule_items: Array<{
     id: string;
+    topic_id: string | null;
     date: string;
     period: ScheduleItem["period"];
     kind: ScheduleItem["kind"];
@@ -64,6 +58,7 @@ type StoredPlan = {
   }>;
   study_sessions: Array<{
     id: string;
+    schedule_item_id: string | null;
     studied_at: string;
     subject_name: string | null;
     minutes: number;
@@ -81,7 +76,7 @@ type PlanOption = {
 };
 
 const storedPlanSelect =
-  "id,title,exam_date,summary,subjects(id,name,questions,weight,color,progress,topics(id,title,status,due_date,position)),schedule_items(id,date,period,kind,minutes,subject_name,topic_title),study_sessions(id,studied_at,subject_name,minutes,questions,correct,notes)";
+  "id,title,exam_date,summary,subjects(id,name,questions,weight,color,progress,topics(id,title,status,due_date,position)),schedule_items(id,topic_id,date,period,kind,minutes,subject_name,topic_title),study_sessions(id,schedule_item_id,studied_at,subject_name,minutes,questions,correct,notes)";
 
 const colors = ["#087c68", "#1f5eff", "#f65d5b", "#0b1f3a", "#b4ca18", "#0e8aa5", "#4f46e5", "#187b4d", "#d97706", "#64748b"];
 const calendarColors = ["#087c68", "#1f5eff", "#f65d5b", "#0b1f3a", "#82960d", "#0e8aa5", "#4f46e5"];
@@ -95,6 +90,15 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
   const [goals, setGoals] = useState(initialGoals);
   const [schedule, setSchedule] = useState(initialSchedule);
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [reviewStates, setReviewStates] = useState<ReviewState[]>([]);
+  const [errorEntries, setErrorEntries] = useState<ErrorEntry[]>([]);
+  const [simulations, setSimulations] = useState<SimulationRecord[]>([]);
+  const [executionItem, setExecutionItem] = useState<ScheduleItem | null>(null);
+  const [isRecoveryOpen, setIsRecoveryOpen] = useState(false);
+  const [currentExamDate, setCurrentExamDate] = useState("");
+  const [adaptiveMessage, setAdaptiveMessage] = useState("");
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [emailNotifications, setEmailNotifications] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
@@ -109,6 +113,33 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
     let active = true;
 
     async function loadLatestPlan() {
+      if (userId === "__preview__") {
+        const previewSubjects: Subject[] = [
+          { id: "subject-1", name: "Língua Portuguesa", questions: 10, weight: 15, color: colors[0], progress: 28, topics: ["Interpretação de texto", "Sintaxe e pontuação"], topicIds: ["topic-1", "topic-2"] },
+          { id: "subject-2", name: "Direito Constitucional", questions: 12, weight: 18, color: colors[1], progress: 16, topics: ["Direitos fundamentais", "Organização do Estado"], topicIds: ["topic-3", "topic-4"] },
+          { id: "subject-3", name: "Direito Administrativo", questions: 8, weight: 12, color: colors[2], progress: 8, topics: ["Atos administrativos", "Agentes públicos"], topicIds: ["topic-5", "topic-6"] }
+        ];
+        const previewSchedule: ScheduleItem[] = [
+          { id: "slot-lost", topicId: "topic-5", date: offsetIso(-2), weekday: weekdayFromIso(offsetIso(-2)), period: "Tarde", subject: "Direito Administrativo", topic: "Atos administrativos", kind: "teoria", minutes: 60, status: "missed", completionPercent: 0 },
+          { id: "slot-1", topicId: "topic-1", date: todayIso(), weekday: weekdayFromIso(todayIso()), period: "Manha", subject: "Língua Portuguesa", topic: "Interpretação de texto", kind: "teoria", minutes: 60, status: "completed", completionPercent: 100 },
+          { id: "slot-2", topicId: "topic-3", date: todayIso(), weekday: weekdayFromIso(todayIso()), period: "Tarde", subject: "Direito Constitucional", topic: "Direitos fundamentais", kind: "teoria", minutes: 90, status: "planned", completionPercent: 0 },
+          { id: "slot-3", topicId: "topic-3", date: todayIso(), weekday: weekdayFromIso(todayIso()), period: "Noite", subject: "Direito Constitucional", topic: "Questões sobre direitos fundamentais", kind: "questoes", minutes: 45, status: "planned", completionPercent: 0 },
+          { id: "slot-4", topicId: "topic-2", date: offsetIso(1), weekday: weekdayFromIso(offsetIso(1)), period: "Manha", subject: "Língua Portuguesa", topic: "Sintaxe e pontuação", kind: "teoria", minutes: 60, status: "planned", completionPercent: 0 },
+          { id: "slot-5", topicId: "topic-4", date: offsetIso(2), weekday: weekdayFromIso(offsetIso(2)), period: "Tarde", subject: "Direito Constitucional", topic: "Organização do Estado", kind: "revisao", minutes: 45, status: "planned", completionPercent: 0 },
+          { id: "slot-6", topicId: "topic-6", date: offsetIso(3), weekday: weekdayFromIso(offsetIso(3)), period: "Noite", subject: "Direito Administrativo", topic: "Agentes públicos", kind: "questoes", minutes: 60, status: "planned", completionPercent: 0 }
+        ];
+        setSubjects(previewSubjects);
+        setSchedule(previewSchedule);
+        setSessions([{ id: "session-preview", date: todayIso(), subject: "Língua Portuguesa", topicId: "topic-1", topic: "Interpretação de texto", kind: "teoria", minutes: 52, questions: 10, correct: 8, difficulty: 2, confidence: 4, completionPercent: 100, recallRating: "good", notes: "Revisar inferência textual." }]);
+        setReviewStates([{ topicId: "topic-5", dueAt: offsetIso(-1), stability: 2, difficulty: 5, scheduledDays: 2, reps: 1, lapses: 0, state: 2 }]);
+        setErrorEntries([{ id: "error-preview", subject: "Língua Portuguesa", topic: "Interpretação de texto", title: "Errei uma inferência implícita", details: "Voltar ao trecho antes de escolher a alternativa.", errorType: "interpretation", source: "Questão de treino", resolved: false, createdAt: new Date().toISOString() }]);
+        setSimulations([{ id: "simulation-preview", title: "Simulado diagnóstico", date: offsetIso(-7), totalQuestions: 60, correct: 41, durationMinutes: 180, notes: "" }]);
+        setCurrentPlanId("00000000-0000-4000-8000-000000000001");
+        setCurrentExamDate(offsetIso(60));
+        setPlanOptions([{ id: "00000000-0000-4000-8000-000000000001", title: "Concurso de demonstração", exam_date: offsetIso(60), created_at: new Date().toISOString() }]);
+        setIsLoadingPlan(false);
+        return;
+      }
       const supabase = createBrowserSupabaseClient();
 
       if (!supabase || !userId) {
@@ -156,6 +187,7 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
 
       if (data) {
         importStoredPlan(data as StoredPlan);
+        await loadAdaptiveData(latestId);
       }
 
       setIsLoadingPlan(false);
@@ -167,6 +199,17 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
       active = false;
     };
   }, [userId]);
+
+  useEffect(() => {
+    if (typeof Notification === "undefined") return;
+    setNotificationsEnabled(Notification.permission === "granted");
+    if (Notification.permission !== "granted" || !schedule.length) return;
+    const pending = schedule.find((item) => item.date === todayIso() && item.status !== "completed");
+    const notificationKey = `planotracker-notified-${todayIso()}-${currentPlanId}`;
+    if (!pending || window.localStorage.getItem(notificationKey)) return;
+    navigator.serviceWorker?.ready.then((registration) => registration.showNotification("Seu próximo estudo está pronto", { body: `${pending.subject}: ${pending.topic}`, icon: "/plano-tracker.png", tag: notificationKey }));
+    window.localStorage.setItem(notificationKey, "1");
+  }, [schedule, currentPlanId]);
 
   async function selectStoredPlan(planId: string) {
     const supabase = createBrowserSupabaseClient();
@@ -188,6 +231,7 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
     }
 
     importStoredPlan(data as StoredPlan);
+    await loadAdaptiveData(planId);
     setStorageMessage("");
     setIsLoadingPlan(false);
   }
@@ -196,6 +240,34 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
     const supabase = createBrowserSupabaseClient();
     await supabase?.auth.signOut();
     window.location.assign("/login");
+  }
+
+  async function enableNotifications() {
+    if (typeof Notification === "undefined") {
+      setStorageMessage("Este navegador não oferece notificações.");
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    setNotificationsEnabled(permission === "granted");
+    const supabase = createBrowserSupabaseClient();
+    if (supabase && userId !== "__preview__") await supabase.from("notification_preferences").upsert({ user_id: userId, browser_enabled: permission === "granted", updated_at: new Date().toISOString() });
+    setStorageMessage(permission === "granted" ? "Lembretes do navegador ativados." : "Permissão de notificação não concedida.");
+  }
+
+  async function toggleEmailNotifications() {
+    const enabled = !emailNotifications;
+    const supabase = createBrowserSupabaseClient();
+    if (!supabase || userId === "__preview__") {
+      setEmailNotifications(enabled);
+      return;
+    }
+    const { error } = await supabase.from("notification_preferences").upsert({ user_id: userId, email_enabled: enabled, updated_at: new Date().toISOString() });
+    if (error) {
+      setStorageMessage("Não foi possível alterar os lembretes por e-mail.");
+      return;
+    }
+    setEmailNotifications(enabled);
+    setStorageMessage(enabled ? "Resumo diário por e-mail ativado." : "Resumo diário por e-mail desativado.");
   }
 
   const stats = useMemo(() => {
@@ -218,10 +290,16 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
     calendar: "Calendário",
     goals: "Metas",
     subjects: "Disciplinas",
-    sessions: "Sessões"
+    sessions: "Sessões",
+    reviews: "Revisões",
+    errors: "Caderno de erros",
+    simulations: "Simulados",
+    materials: "Materiais"
   }[view];
   const totalGoals = goals.length || 1;
-  const progressPercent = Math.round((stats.doneGoals / totalGoals) * 100);
+  const progressPercent = schedule.length
+    ? Math.round(schedule.filter((item) => item.status === "completed").length / schedule.length * 100)
+    : Math.round((stats.doneGoals / totalGoals) * 100);
 
   function applyGeneratedPlan(plan: GeneratedPlan) {
     const mappedSubjects = plan.subjects.map((subject, index) => ({
@@ -235,6 +313,10 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
     setSchedule(plan.schedule);
     setSessions([]);
     setCurrentPlanId("");
+    setCurrentExamDate(plan.examDate);
+    setReviewStates([]);
+    setErrorEntries([]);
+    setSimulations([]);
     setLastPlanSource(plan.source);
     setView("dashboard");
 
@@ -282,18 +364,22 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
       .sort((a, b) => `${a.date}-${periodOrder(a.period)}`.localeCompare(`${b.date}-${periodOrder(b.period)}`))
       .map((item) => ({
         id: item.id,
+        topicId: item.topic_id || undefined,
         date: item.date,
         weekday: weekdayFromIso(item.date),
         period: item.period,
         subject: item.subject_name,
         topic: item.topic_title,
         kind: item.kind,
-        minutes: item.minutes
+        minutes: item.minutes,
+        status: "planned" as const,
+        completionPercent: 0
       }));
     const mappedSessions = [...(plan.study_sessions || [])]
       .sort((a, b) => String(b.studied_at).localeCompare(String(a.studied_at)))
       .map((session) => ({
         id: session.id,
+        scheduleItemId: session.schedule_item_id || undefined,
         date: session.studied_at,
         subject: session.subject_name || "Geral",
         minutes: session.minutes || 0,
@@ -303,10 +389,68 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
       }));
 
     setCurrentPlanId(plan.id);
+    setCurrentExamDate(plan.exam_date);
     setSubjects(mappedSubjects);
     setGoals(mappedGoals);
     setSchedule(mappedSchedule);
     setSessions(mappedSessions);
+  }
+
+  async function loadAdaptiveData(planId: string) {
+    const supabase = createBrowserSupabaseClient();
+    if (!supabase || !userId) return;
+
+    const [scheduleResult, sessionResult, reviewResult, errorResult, simulationResult] = await Promise.all([
+      supabase.from("schedule_items").select("id,status,completion_percent,completed_at,rescheduled_from_id").eq("plan_id", planId),
+      supabase.from("study_sessions").select("id,topic_id,topic_title,kind,difficulty,confidence,completion_percent,recall_rating,schedule_item_id").eq("plan_id", planId),
+      supabase.from("topic_review_states").select("topic_id,due_at,stability,difficulty,scheduled_days,reps,lapses,state,last_review_at").eq("plan_id", planId),
+      supabase.from("error_entries").select("*").eq("plan_id", planId).order("created_at", { ascending: false }),
+      supabase.from("simulations").select("*,simulation_results(subject_id,subject_name,questions,correct)").eq("plan_id", planId).order("simulated_at", { ascending: false })
+    ]);
+
+    const migrationMissing = [scheduleResult, sessionResult, reviewResult, errorResult, simulationResult]
+      .some((result) => result.error && ["42703", "42P01"].includes(result.error.code || ""));
+    setAdaptiveMessage(migrationMissing ? "Os recursos adaptativos precisam da nova migração do Supabase." : "");
+
+    if (!scheduleResult.error) {
+      const byId = new Map((scheduleResult.data || []).map((item) => [String(item.id), item]));
+      setSchedule((current) => current.map((item) => {
+        const stored = item.id ? byId.get(item.id) : undefined;
+        return stored ? { ...item, status: stored.status, completionPercent: stored.completion_percent, completedAt: stored.completed_at || undefined, rescheduledFromId: stored.rescheduled_from_id || undefined } : item;
+      }));
+    }
+
+    if (!sessionResult.error) {
+      const byId = new Map((sessionResult.data || []).map((item) => [String(item.id), item]));
+      setSessions((current) => current.map((session) => {
+        const stored = byId.get(session.id);
+        return stored ? { ...session, scheduleItemId: stored.schedule_item_id || undefined, topicId: stored.topic_id || undefined, topic: stored.topic_title || undefined, kind: stored.kind || undefined, difficulty: stored.difficulty || undefined, confidence: stored.confidence || undefined, completionPercent: stored.completion_percent, recallRating: stored.recall_rating || undefined } : session;
+      }));
+    }
+
+    if (!reviewResult.error) {
+      setReviewStates((reviewResult.data || []).map((item) => ({ topicId: item.topic_id, dueAt: item.due_at, stability: Number(item.stability), difficulty: Number(item.difficulty), scheduledDays: item.scheduled_days, reps: item.reps, lapses: item.lapses, state: item.state, lastReviewAt: item.last_review_at || undefined })));
+    } else setReviewStates([]);
+
+    if (!errorResult.error) {
+      setErrorEntries((errorResult.data || []).map((item) => ({ id: item.id, subjectId: item.subject_id || undefined, topicId: item.topic_id || undefined, subject: item.subject_name, topic: item.topic_title || undefined, title: item.title, details: item.details || "", errorType: item.error_type, source: item.source || undefined, resolved: item.resolved, nextReviewAt: item.next_review_at || undefined, createdAt: item.created_at })));
+    } else setErrorEntries([]);
+
+    if (!simulationResult.error) {
+      setSimulations((simulationResult.data || []).map((item) => ({ id: item.id, title: item.title, date: item.simulated_at, totalQuestions: item.total_questions, correct: item.correct, durationMinutes: item.duration_minutes, notes: item.notes || "", results: (item.simulation_results || []).map((result: { subject_id: string | null; subject_name: string; questions: number; correct: number }) => ({ subjectId: result.subject_id || undefined, subject: result.subject_name, questions: result.questions, correct: result.correct })) })));
+    } else setSimulations([]);
+
+    const { data: notificationPreference } = await supabase.from("notification_preferences").select("email_enabled,browser_enabled").eq("user_id", userId).maybeSingle();
+    if (notificationPreference) {
+      setEmailNotifications(Boolean(notificationPreference.email_enabled));
+      setNotificationsEnabled(Boolean(notificationPreference.browser_enabled) && typeof Notification !== "undefined" && Notification.permission === "granted");
+    }
+
+    if (!migrationMissing) {
+      const { data: lastEvent } = await supabase.from("study_events").select("created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const returningAfterSevenDays = lastEvent?.created_at && Date.now() - new Date(lastEvent.created_at).getTime() >= 7 * 86_400_000;
+      await supabase.from("study_events").insert({ user_id: userId, plan_id: planId, event_name: returningAfterSevenDays ? "returned_after_7_days" : "app_opened", metadata: {} });
+    }
   }
 
   async function saveGeneratedPlan(plan: GeneratedPlan) {
@@ -375,11 +519,22 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
     }
 
     if (plan.schedule.length) {
-      const scheduleWithIds = plan.schedule.map((item) => ({ ...item, id: crypto.randomUUID() }));
+      const scheduleWithIds = plan.schedule.map((item) => {
+        const sourceSubject = plan.subjects.find((subject) => subject.name === item.subject);
+        const topicIndex = sourceSubject?.topics.findIndex((topic) => topicsOverlap(topic, item.topic)) ?? -1;
+        return {
+          ...item,
+          id: crypto.randomUUID(),
+          topicId: topicIndex >= 0 ? topicIdsBySubject.get(item.subject)?.[topicIndex] : undefined,
+          status: "planned" as const,
+          completionPercent: 0
+        };
+      });
       const { error: scheduleError } = await supabase.from("schedule_items").insert(
         scheduleWithIds.map((item) => ({
           id: item.id,
           plan_id: planId,
+          topic_id: item.topicId || null,
           date: item.date,
           period: item.period,
           kind: item.kind,
@@ -394,6 +549,8 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
     }
 
     setCurrentPlanId(planId);
+    setCurrentExamDate(plan.examDate);
+    await supabase.from("study_events").insert({ user_id: userId, plan_id: planId, event_name: "plan_created", metadata: { source: plan.source || "rules", subjects: plan.subjects.length, scheduleItems: plan.schedule.length } });
     setPlanOptions((current) => [
       { id: planId, title: plan.title, exam_date: plan.examDate, created_at: new Date().toISOString() },
       ...current.filter((item) => item.id !== planId)
@@ -590,12 +747,16 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
       preparedDay.map((item) => ({
         id: item.id,
         plan_id: currentPlanId,
+        topic_id: item.topicId || null,
         date: item.date,
         period: item.period,
         kind: item.kind,
         minutes: item.minutes,
         subject_name: item.subject,
-        topic_title: item.topic
+        topic_title: item.topic,
+        status: item.status || "planned",
+        completion_percent: item.completionPercent || 0,
+        completed_at: item.completedAt || null
       }))
     );
 
@@ -615,6 +776,70 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
     );
     setStorageMessage("Calendário salvo automaticamente.");
     window.setTimeout(() => setStorageMessage(""), 3000);
+  }
+
+  function completeAdaptiveSession(session: Session, updatedItem: ScheduleItem, review?: ReviewState) {
+    setSessions((current) => [session, ...current.filter((item) => item.id !== session.id)]);
+    if (updatedItem.id) {
+      setSchedule((current) => current.map((item) => item.id === updatedItem.id ? updatedItem : item));
+    }
+    if (review) {
+      setReviewStates((current) => [review, ...current.filter((item) => item.topicId !== review.topicId)]);
+    }
+  }
+
+  async function createErrorEntry(entry: Omit<ErrorEntry, "id" | "createdAt" | "resolved">) {
+    const supabase = createBrowserSupabaseClient();
+    if (!supabase || !currentPlanId) throw new Error("Selecione um plano antes de registrar um erro.");
+    const subject = subjects.find((item) => item.name === entry.subject);
+    const topicIndex = subject?.topics.findIndex((topic) => topic === entry.topic) ?? -1;
+    const { data, error } = await supabase.from("error_entries").insert({
+      user_id: userId,
+      plan_id: currentPlanId,
+      subject_id: subject?.id || null,
+      topic_id: topicIndex >= 0 ? subject?.topicIds?.[topicIndex] || null : null,
+      subject_name: entry.subject,
+      topic_title: entry.topic || null,
+      title: entry.title,
+      details: entry.details || null,
+      error_type: entry.errorType,
+      source: entry.source || null
+    }).select("*").single();
+    if (error || !data) throw error || new Error("Não foi possível registrar o erro.");
+    setErrorEntries((current) => [{ ...entry, id: data.id, resolved: false, createdAt: data.created_at }, ...current]);
+  }
+
+  async function toggleErrorEntry(entry: ErrorEntry) {
+    const supabase = createBrowserSupabaseClient();
+    if (!supabase) return;
+    const resolved = !entry.resolved;
+    const { error } = await supabase.from("error_entries").update({ resolved, resolved_at: resolved ? new Date().toISOString() : null }).eq("id", entry.id);
+    if (error) throw error;
+    setErrorEntries((current) => current.map((item) => item.id === entry.id ? { ...item, resolved } : item));
+  }
+
+  async function createSimulation(simulation: Omit<SimulationRecord, "id">) {
+    const supabase = createBrowserSupabaseClient();
+    if (!supabase || !currentPlanId) throw new Error("Selecione um plano antes de registrar um simulado.");
+    if (simulation.correct > simulation.totalQuestions) throw new Error("Os acertos não podem superar o total de questões.");
+    if (simulation.results?.some((result) => result.correct > result.questions)) throw new Error("Em cada disciplina, os acertos devem ser menores ou iguais às questões.");
+    const { data, error } = await supabase.from("simulations").insert({
+      user_id: userId,
+      plan_id: currentPlanId,
+      title: simulation.title,
+      simulated_at: simulation.date,
+      total_questions: simulation.totalQuestions,
+      correct: simulation.correct,
+      duration_minutes: simulation.durationMinutes,
+      notes: simulation.notes
+    }).select("id").single();
+    if (error || !data) throw error || new Error("Não foi possível registrar o simulado.");
+    const results = simulation.results?.filter((result) => result.questions > 0) || [];
+    if (results.length) {
+      const { error: resultsError } = await supabase.from("simulation_results").insert(results.map((result) => ({ simulation_id: data.id, subject_id: result.subjectId || null, subject_name: result.subject, questions: result.questions, correct: result.correct })));
+      if (resultsError) throw resultsError;
+    }
+    setSimulations((current) => [{ ...simulation, id: data.id }, ...current]);
   }
 
   return (
@@ -638,6 +863,11 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
           <NavButton active={view === "goals"} icon={<ListChecks size={18} />} label="Metas" onClick={() => setView("goals")} />
           <NavButton active={view === "subjects"} icon={<ClipboardList size={18} />} label="Disciplinas" onClick={() => setView("subjects")} />
           <NavButton active={view === "sessions"} icon={<Plus size={18} />} label="Sessões" onClick={() => setView("sessions")} />
+          <span className="planner-nav-label adaptive-nav-label">Aprendizado</span>
+          <NavButton active={view === "reviews"} icon={<Brain size={18} />} label="Revisões" onClick={() => setView("reviews")} />
+          <NavButton active={view === "materials"} icon={<LibraryBig size={18} />} label="Materiais" onClick={() => setView("materials")} />
+          <NavButton active={view === "errors"} icon={<NotebookPen size={18} />} label="Caderno de erros" onClick={() => setView("errors")} />
+          <NavButton active={view === "simulations"} icon={<ChartSpline size={18} />} label="Simulados" onClick={() => setView("simulations")} />
         </nav>
 
         <div className="sidebar-block">
@@ -647,6 +877,12 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
           </div>
           <div className="small-muted">{progressPercent}% concluído</div>
         </div>
+        <button className={`sidebar-notification ${notificationsEnabled ? "enabled" : ""}`} type="button" onClick={enableNotifications} title="Ativar lembretes do navegador">
+          <BellRing size={17} /> {notificationsEnabled ? "Lembretes ativos" : "Ativar lembretes"}
+        </button>
+        <button className={`sidebar-notification ${emailNotifications ? "enabled" : ""}`} type="button" onClick={toggleEmailNotifications} title="Ativar resumo diário por e-mail">
+          <BellRing size={17} /> {emailNotifications ? "E-mail diário ativo" : "Ativar e-mail diário"}
+        </button>
         <button className="sidebar-signout" type="button" onClick={signOut} title="Sair da conta">
           <LogOut size={17} /> Sair
         </button>
@@ -692,13 +928,22 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
             lastPlanSource={lastPlanSource}
             storageMessage={storageMessage}
             isLoadingPlan={isLoadingPlan}
+            examDate={currentExamDate}
+            onStartSession={setExecutionItem}
+            onOpenRecovery={() => setIsRecoveryOpen(true)}
+            errors={errorEntries}
           />
         ) : null}
+        {adaptiveMessage ? <div className="notice adaptive-migration-notice">{adaptiveMessage}</div> : null}
         {view === "create" ? <CreatePlan onPlanGenerated={importGeneratedPlan} /> : null}
-        {view === "calendar" ? <Calendar schedule={schedule} subjects={subjects} onSaveDay={persistScheduleDay} /> : null}
+        {view === "calendar" ? <Calendar schedule={schedule} subjects={subjects} onSaveDay={persistScheduleDay} onStartSession={setExecutionItem} /> : null}
         {view === "goals" ? <Goals goals={goals} setGoals={setGoals} openGoalModal={openGoalModal} onPersistGoal={persistGoal} onDeleteGoal={deleteGoalFromStorage} onStorageError={setStorageMessage} /> : null}
         {view === "subjects" ? <Subjects subjects={subjects} setSubjects={setSubjects} openSubjectModal={openSubjectModal} onDeleteSubject={deleteSubjectFromStorage} onStorageError={setStorageMessage} /> : null}
         {view === "sessions" ? <Sessions subjects={subjects} sessions={sessions} setSessions={setSessions} onPersistSession={persistSession} /> : null}
+        {view === "reviews" ? <ReviewsView subjects={subjects} sessions={sessions} reviewStates={reviewStates} errors={errorEntries} onStart={setExecutionItem} /> : null}
+        {view === "materials" ? <MaterialsView planId={currentPlanId} subjects={subjects} onAddError={createErrorEntry} /> : null}
+        {view === "errors" ? <ErrorsView entries={errorEntries} subjects={subjects} onCreate={createErrorEntry} onToggle={toggleErrorEntry} /> : null}
+        {view === "simulations" ? <SimulationsView schedule={schedule} sessions={sessions} subjects={subjects} simulations={simulations} examDate={currentExamDate} onCreate={createSimulation} /> : null}
       </main>
 
       {isGoalModalOpen ? (
@@ -724,6 +969,14 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
           onSave={saveSubject}
         />
       ) : null}
+
+      {executionItem && currentPlanId ? (
+        <SessionExecutionModal item={executionItem} planId={currentPlanId} onClose={() => setExecutionItem(null)} onSaved={completeAdaptiveSession} />
+      ) : null}
+
+      {isRecoveryOpen && currentPlanId && currentExamDate ? (
+        <RecoveryModal planId={currentPlanId} examDate={currentExamDate} schedule={schedule} onClose={() => setIsRecoveryOpen(false)} onApplied={setSchedule} />
+      ) : null}
     </div>
   );
 }
@@ -746,7 +999,11 @@ function Dashboard({
   setView,
   lastPlanSource,
   storageMessage,
-  isLoadingPlan
+  isLoadingPlan,
+  examDate,
+  onStartSession,
+  onOpenRecovery,
+  errors
 }: {
   stats: { minutes: number; questions: number; accuracy: number; doneGoals: number };
   goals: Goal[];
@@ -757,6 +1014,10 @@ function Dashboard({
   lastPlanSource?: GeneratedPlan["source"];
   storageMessage: string;
   isLoadingPlan: boolean;
+  examDate: string;
+  onStartSession: (item: ScheduleItem) => void;
+  onOpenRecovery: () => void;
+  errors: ErrorEntry[];
 }) {
   const todaySchedule = schedule.filter((slot) => slot.date === todayIso());
 
@@ -779,6 +1040,17 @@ function Dashboard({
         <Stat label="Metas concluídas" value={`${stats.doneGoals}/${goals.length}`} />
       </div>
 
+      <AdaptiveOverview
+        schedule={schedule}
+        sessions={sessions}
+        subjects={subjects}
+        examDate={examDate}
+        onStart={onStartSession}
+        onOpenRecovery={onOpenRecovery}
+        onOpenReviews={() => setView("reviews")}
+        errors={errors}
+      />
+
       <WeeklyOverview schedule={schedule} onOpenCalendar={() => setView("calendar")} />
 
       <div className="content-grid">
@@ -791,7 +1063,7 @@ function Dashboard({
           </div>
           <div className="stack-list">
             {todaySchedule.length ? (
-              todaySchedule.map((slot, index) => <StudySlot key={`${slot.date}-${slot.period}-${index}`} slot={slot} />)
+              todaySchedule.map((slot, index) => <StudySlot key={`${slot.date}-${slot.period}-${index}`} slot={slot} onStart={onStartSession} />)
             ) : schedule.length ? (
               <EmptyState text="Nenhum estudo marcado para hoje. Veja o calendário para conferir os próximos dias." />
             ) : (
@@ -941,11 +1213,13 @@ function CreatePlan({ onPlanGenerated }: { onPlanGenerated: (plan: GeneratedPlan
 function Calendar({
   schedule,
   subjects,
-  onSaveDay
+  onSaveDay,
+  onStartSession
 }: {
   schedule: ScheduleItem[];
   subjects: Subject[];
   onSaveDay: (originalDate: string | null, day: ScheduleItem[]) => Promise<void>;
+  onStartSession: (item: ScheduleItem) => void;
 }) {
   const [editingDay, setEditingDay] = useState<ScheduleItem[] | null>(null);
   const [isCreatingDay, setIsCreatingDay] = useState(false);
@@ -964,15 +1238,16 @@ function Calendar({
           <strong>Agenda de estudos</strong>
           <span>Crie novos dias ou ajuste os blocos gerados pela IA.</span>
         </div>
-        <button className="primary-button" type="button" onClick={() => setIsCreatingDay(true)}>
-          <Plus size={18} /> Novo dia
-        </button>
+        <div className="calendar-toolbar-actions">
+          {schedule.length ? <button className="ghost-button" type="button" onClick={() => downloadScheduleCalendar(schedule)}><Download size={17} /> Exportar agenda</button> : null}
+          <button className="primary-button" type="button" onClick={() => setIsCreatingDay(true)}><Plus size={18} /> Novo dia</button>
+        </div>
       </div>
 
       {days.length ? (
         <div className="calendar-grid">
           {days.map((day, index) => (
-            <DayCard key={day[0].date} day={day} color={calendarColors[index % calendarColors.length]} onEdit={() => setEditingDay(day)} />
+            <DayCard key={day[0].date} day={day} color={calendarColors[index % calendarColors.length]} onEdit={() => setEditingDay(day)} onStart={onStartSession} />
           ))}
         </div>
       ) : (
@@ -991,6 +1266,7 @@ function Calendar({
           onSave={onSaveDay}
         />
       ) : null}
+
     </>
   );
 }
@@ -1406,6 +1682,7 @@ function ScheduleDayModal({
                     <option value="teoria">Teoria</option>
                     <option value="questoes">Questões</option>
                     <option value="revisao">Revisão</option>
+                    <option value="simulado">Simulado</option>
                   </select>
                 </label>
               </div>
@@ -1669,14 +1946,17 @@ function WeeklyOverview({ schedule, onOpenCalendar }: { schedule: ScheduleItem[]
   );
 }
 
-function StudySlot({ slot }: { slot: ScheduleItem }) {
+function StudySlot({ slot, onStart }: { slot: ScheduleItem; onStart: (item: ScheduleItem) => void }) {
   return (
-    <article className="session-item">
+    <article className={`session-item focus-session-item status-${slot.status || "planned"}`}>
       <div>
         <strong>{displayPeriod(slot.period)} - {slot.subject}</strong>
         <span>{formatHours(slot.minutes)} | {slot.topic}</span>
       </div>
-      <span className="status-pill">{displayKind(slot.kind)}</span>
+      <div className="focus-session-actions">
+        <span className={`status-pill ${slot.status === "completed" ? "done" : ""}`}>{scheduleStatusLabel(slot.status)}</span>
+        {slot.status !== "completed" ? <button className="primary-button compact-button" type="button" onClick={() => onStart(slot)}>Iniciar</button> : null}
+      </div>
     </article>
   );
 }
@@ -1687,6 +1967,9 @@ function SubjectRow({ subject, sessions }: { subject: Subject; sessions: Session
   const questions = subjectSessions.reduce((sum, session) => sum + session.questions, 0);
   const correct = subjectSessions.reduce((sum, session) => sum + session.correct, 0);
   const accuracy = questions ? Math.round((correct / questions) * 100) : 0;
+  const calculatedProgress = minutes
+    ? Math.min(100, Math.round(minutes / Math.max(60, subject.topics.length * 60) * 100))
+    : subject.progress;
 
   return (
     <div className="subject-row">
@@ -1697,12 +1980,12 @@ function SubjectRow({ subject, sessions }: { subject: Subject; sessions: Session
         </div>
         <div className="mini-meta">{formatMinutes(minutes)} | {questions} questões | {accuracy}% acerto</div>
       </div>
-      <strong>{subject.progress}%</strong>
+      <strong>{calculatedProgress}%</strong>
     </div>
   );
 }
 
-function DayCard({ day, color, onEdit }: { day: ScheduleItem[]; color: string; onEdit: () => void }) {
+function DayCard({ day, color, onEdit, onStart }: { day: ScheduleItem[]; color: string; onEdit: () => void; onStart: (item: ScheduleItem) => void }) {
   return (
     <article className="calendar-card day-plan">
       <div className="calendar-head" style={{ background: color }}>
@@ -1716,9 +1999,10 @@ function DayCard({ day, color, onEdit }: { day: ScheduleItem[]; color: string; o
       </div>
       <div className="calendar-body">
         {day.map((slot) => (
-          <div className="study-slot" key={`${slot.date}-${slot.period}`}>
+          <div className={`study-slot status-${slot.status || "planned"}`} key={`${slot.date}-${slot.period}-${slot.id || slot.topic}`}>
             <div className="slot-time">{displayPeriod(slot.period)}<span>{formatHours(slot.minutes)}</span></div>
-            <div><strong>{slot.subject}</strong><p>{slot.topic}</p></div>
+            <div><strong>{slot.subject}</strong><p>{slot.topic}</p><span className="calendar-slot-status">{scheduleStatusLabel(slot.status)}{slot.status === "partial" ? ` · ${slot.completionPercent || 0}%` : ""}</span></div>
+            {slot.status !== "completed" ? <button className="calendar-start-button" type="button" onClick={() => onStart(slot)} title="Iniciar sessão"><CirclePlay size={18} /></button> : <Check size={18} aria-label="Concluída" />}
           </div>
         ))}
       </div>
@@ -1767,11 +2051,18 @@ function weekdayFromIso(value: string) {
 }
 
 function todayIso() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(new Date());
+}
+
+function offsetIso(amount: number) {
   const date = new Date();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  date.setDate(date.getDate() + amount);
+  return localDateIso(date);
 }
 
 function localDateIso(date: Date) {
@@ -1832,7 +2123,50 @@ function displayPeriod(period: ScheduleItem["period"]) {
 }
 
 function displayKind(kind: ScheduleItem["kind"]) {
-  return { teoria: "Teoria", questoes: "Questões", revisao: "Revisão" }[kind] || kind;
+  return { teoria: "Teoria", questoes: "Questões", revisao: "Revisão", simulado: "Simulado" }[kind] || kind;
+}
+
+function scheduleStatusLabel(status?: ScheduleItem["status"]) {
+  return {
+    planned: "Planejada",
+    in_progress: "Em andamento",
+    completed: "Concluída",
+    partial: "Parcial",
+    postponed: "Adiada",
+    missed: "Não realizada"
+  }[status || "planned"];
+}
+
+function topicsOverlap(a: string, b: string) {
+  const normalize = (value: string) => value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+  const first = normalize(a);
+  const second = normalize(b);
+  return first === second || first.includes(second) || second.includes(first);
+}
+
+function downloadScheduleCalendar(schedule: ScheduleItem[]) {
+  const escape = (value: string) => value.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//PlanoTracker//Rota de Estudos//PT-BR", "CALSCALE:GREGORIAN"];
+  schedule.forEach((item, index) => {
+    const startHour = { Manha: 8, Tarde: 14, Noite: 19 }[item.period];
+    const start = calendarTimestamp(item.date, startHour, 0);
+    const endDate = new Date(`${item.date}T${String(startHour).padStart(2, "0")}:00:00`);
+    endDate.setMinutes(endDate.getMinutes() + item.minutes);
+    const end = `${localDateIso(endDate).replace(/-/g, "")}T${String(endDate.getHours()).padStart(2, "0")}${String(endDate.getMinutes()).padStart(2, "0")}00`;
+    lines.push("BEGIN:VEVENT", `UID:${item.id || index}-${item.date}@planotracker`, `DTSTART;TZID=America/Sao_Paulo:${start}`, `DTEND;TZID=America/Sao_Paulo:${end}`, `SUMMARY:${escape(`${item.subject} - ${displayKind(item.kind)}`)}`, `DESCRIPTION:${escape(item.topic)}`, "END:VEVENT");
+  });
+  lines.push("END:VCALENDAR");
+  const blob = new Blob([lines.join("\r\n")], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "plano-de-estudos-planotracker.ics";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function calendarTimestamp(date: string, hour: number, minute: number) {
+  return `${date.replace(/-/g, "")}T${String(hour).padStart(2, "0")}${String(minute).padStart(2, "0")}00`;
 }
 
 function displayWeekday(weekday: string) {

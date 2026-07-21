@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { generatePlanWithAi } from "@/lib/openai-plan";
 import { getUserFromRequest, userHasActiveSubscription } from "@/lib/server-auth";
+import { createAdminSupabaseClient } from "@/lib/supabase";
+import type { AiUsage } from "@/lib/openai-plan";
 
 const requestSchema = z.object({
   mode: z.enum(["ai"]).optional(),
@@ -59,7 +61,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Cole o conteúdo do edital ou anexe um arquivo para gerar o plano." }, { status: 400 });
     }
 
-    const plan = await generatePlanWithAi(parsed.data);
+    let usage: AiUsage | undefined;
+    const plan = await generatePlanWithAi(parsed.data, (value) => { usage = value; });
+    if (usage) {
+      const supabase = createAdminSupabaseClient();
+      await supabase?.from("ai_usage_events").insert({
+        user_id: user.id,
+        operation: "generate_plan",
+        model: usage.model,
+        input_tokens: usage.inputTokens,
+        output_tokens: usage.outputTokens
+      });
+    }
     return NextResponse.json({ plan });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro inesperado.";

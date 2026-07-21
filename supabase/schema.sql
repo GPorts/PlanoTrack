@@ -104,6 +104,10 @@ create table if not exists public.payments (
   created_at timestamptz not null default now()
 );
 
+-- Adaptive study tables and columns are maintained in
+-- supabase/migrations/20260720_adaptive_study.sql. Run that migration after
+-- this base schema when creating a new environment.
+
 alter table public.profiles enable row level security;
 alter table public.subscriptions enable row level security;
 alter table public.study_plans enable row level security;

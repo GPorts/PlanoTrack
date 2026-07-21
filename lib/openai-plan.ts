@@ -4,6 +4,12 @@ import { getEnv, isMockAiEnabled } from "./env";
 import { generateRuleBasedPlan } from "./plan-rules";
 import type { GeneratedPlan, StudyPlanRequest } from "./types";
 
+export type AiUsage = {
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+};
+
 const extractionSchema = z.object({
   title: z.string(),
   examDate: z.string(),
@@ -34,7 +40,7 @@ const extractionSchema = z.object({
   recommendations: z.array(z.string())
 });
 
-export async function generatePlanWithAi(input: StudyPlanRequest): Promise<GeneratedPlan> {
+export async function generatePlanWithAi(input: StudyPlanRequest, onUsage?: (usage: AiUsage) => void): Promise<GeneratedPlan> {
   if (isMockAiEnabled() || !getEnv("OPENAI_API_KEY")) {
     return generateRuleBasedPlan(input);
   }
@@ -150,6 +156,12 @@ export async function generatePlanWithAi(input: StudyPlanRequest): Promise<Gener
         }
       }
     }
+  });
+
+  onUsage?.({
+    model,
+    inputTokens: response.usage?.input_tokens || 0,
+    outputTokens: response.usage?.output_tokens || 0
   });
 
   const parsed = extractionSchema.safeParse(JSON.parse(response.output_text || "{}"));

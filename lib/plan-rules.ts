@@ -235,7 +235,7 @@ function instructionForPeriod(text: string, periodKey: string) {
   return sentenceCase(withoutPeriod || clause);
 }
 
-function inferKind(text: string): ScheduleItem["kind"] {
+function inferKind(text: string): StudyBlock["kind"] {
   const normalized = normalize(text);
   if (/quest|exerc|simulad|caderno de erros/.test(normalized)) return "questoes";
   if (/revis|resumo|flashcard/.test(normalized)) return "revisao";
