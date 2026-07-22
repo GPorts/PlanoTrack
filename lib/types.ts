@@ -7,11 +7,22 @@ export type SubjectInput = {
   topics: string[];
 };
 
+export type StudyWeekday =
+  | "Segunda-feira"
+  | "Terça-feira"
+  | "Quarta-feira"
+  | "Quinta-feira"
+  | "Sexta-feira"
+  | "Sábado"
+  | "Domingo";
+
 export type RoutineInput = {
   examName: string;
   examDate: string;
-  hoursPerDay: number;
-  studyDays: string[];
+  hoursByDay?: Partial<Record<StudyWeekday, number>>;
+  studyDays: StudyWeekday[];
+  /** Compatibilidade com requisições criadas antes da disponibilidade por dia. */
+  hoursPerDay?: number;
   preferredBlocks: string;
 };
 

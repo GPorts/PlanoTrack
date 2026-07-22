@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -29,6 +29,7 @@ import {
   weeklyReview
 } from "@/lib/adaptive-plan";
 import { createBrowserSupabaseClient } from "@/lib/supabase";
+import { calculateElapsedSeconds, elapsedMinutes } from "@/lib/session-timer";
 import type {
   ErrorEntry,
   RebalancePreview,
@@ -163,6 +164,9 @@ export function SessionExecutionModal({
 }) {
   const [running, setRunning] = useState(false);
   const [seconds, setSeconds] = useState(0);
+  const [manualMinutes, setManualMinutes] = useState<string | null>(null);
+  const accumulatedSeconds = useRef(0);
+  const startedAt = useRef<number | null>(null);
   const [status, setStatus] = useState<Extract<ScheduleStatus, "completed" | "partial" | "postponed" | "missed">>("completed");
   const [rating, setRating] = useState<RecallRating | undefined>();
   const [saving, setSaving] = useState(false);
@@ -170,17 +174,44 @@ export function SessionExecutionModal({
 
   useEffect(() => {
     if (!running) return;
-    const timer = window.setInterval(() => setSeconds((value) => value + 1), 1000);
-    return () => window.clearInterval(timer);
+
+    const syncElapsedTime = () => {
+      setSeconds(calculateElapsedSeconds(accumulatedSeconds.current, startedAt.current));
+    };
+    const timer = window.setInterval(syncElapsedTime, 1000);
+    document.addEventListener("visibilitychange", syncElapsedTime);
+    window.addEventListener("focus", syncElapsedTime);
+
+    syncElapsedTime();
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", syncElapsedTime);
+      window.removeEventListener("focus", syncElapsedTime);
+    };
   }, [running]);
+
+  function toggleTimer() {
+    if (running) {
+      const elapsed = calculateElapsedSeconds(accumulatedSeconds.current, startedAt.current);
+      accumulatedSeconds.current = elapsed;
+      startedAt.current = null;
+      setSeconds(elapsed);
+      setRunning(false);
+      return;
+    }
+
+    startedAt.current = Date.now();
+    setRunning(true);
+  }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const completionPercent = status === "completed" ? 100 : status === "partial" ? Number(form.get("completionPercent")) : 0;
+    const timerSeconds = calculateElapsedSeconds(accumulatedSeconds.current, startedAt.current);
     const actualMinutes = status === "missed" || status === "postponed"
       ? 0
-      : Math.max(1, Number(form.get("actualMinutes")) || Math.ceil(seconds / 60));
+      : Math.max(1, Number(form.get("actualMinutes")) || (timerSeconds ? elapsedMinutes(timerSeconds) : item.minutes));
     const feedback = {
       planId,
       scheduleItemId: item.id,
@@ -259,7 +290,7 @@ export function SessionExecutionModal({
         <div className="study-timer">
           <strong>{formatClock(seconds)}</strong>
           <span>Meta: {formatMinutes(item.minutes)}</span>
-          <button className={running ? "ghost-button" : "primary-button"} type="button" onClick={() => setRunning((value) => !value)}>
+          <button className={running ? "ghost-button" : "primary-button"} type="button" onClick={toggleTimer}>
             {running ? <><CirclePause size={18} /> Pausar</> : <><CirclePlay size={18} /> {seconds ? "Continuar" : "Iniciar"}</>}
           </button>
         </div>
@@ -276,7 +307,17 @@ export function SessionExecutionModal({
         {studying ? (
           <>
             <div className="form-row">
-              <label>Minutos reais<input name="actualMinutes" type="number" min="1" max="1440" defaultValue={item.minutes} /></label>
+              <label>
+                Minutos reais
+                <input
+                  name="actualMinutes"
+                  type="number"
+                  min="1"
+                  max="1440"
+                  value={manualMinutes ?? (seconds ? elapsedMinutes(seconds) : item.minutes)}
+                  onChange={(event) => setManualMinutes(event.target.value)}
+                />
+              </label>
               {status === "partial" ? <label>Quanto concluiu (%)<input name="completionPercent" type="number" min="1" max="99" defaultValue="50" /></label> : null}
             </div>
             <div className="form-row">

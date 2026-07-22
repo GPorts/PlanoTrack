@@ -1,16 +1,19 @@
-import type { GeneratedPlan, ScheduleItem, StudyBlock, StudyPlanRequest, StudyRoutinePolicy, SubjectInput } from "./types";
+import type { GeneratedPlan, ScheduleItem, StudyBlock, StudyPlanRequest, StudyRoutinePolicy, StudyWeekday, SubjectInput } from "./types";
 
-const weekdayNames = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+const weekdayNames: StudyWeekday[] = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 
 export function generateRuleBasedPlan(input: StudyPlanRequest, interpretedPolicy?: StudyRoutinePolicy): GeneratedPlan {
   const subjects = input.subjects?.length ? input.subjects : fallbackSubjects(input.editalText);
   const policy = sanitizePolicy(enforceExplicitRoutineConstraints(interpretedPolicy, input.routine.preferredBlocks));
-  const schedule = buildSchedule(subjects, input.routine.examDate, input.routine.hoursPerDay, input.routine.studyDays, policy);
+  const hoursByDay = resolveHoursByDay(input.routine);
+  const schedule = buildSchedule(subjects, input.routine.examDate, hoursByDay, policy);
+  const weeklyHours = Object.values(hoursByDay).reduce((sum, hours) => sum + hours, 0);
+  const activeDays = Object.values(hoursByDay).filter((hours) => hours > 0).length;
 
   return {
     title: input.routine.examName || "Novo plano de estudos",
     examDate: input.routine.examDate,
-    summary: `Plano criado para ${subjects.length} disciplinas, com ${input.routine.hoursPerDay} horas por dia até a data da prova.`,
+    summary: `Plano criado para ${subjects.length} disciplinas, com ${formatHours(weeklyHours)} por semana distribuídas em ${activeDays} ${activeDays === 1 ? "dia" : "dias"} até a data da prova.`,
     subjects,
     schedule,
     recommendations: [
@@ -112,24 +115,24 @@ function fallbackSubjects(editalText = ""): SubjectInput[] {
 function buildSchedule(
   subjects: SubjectInput[],
   examDate: string,
-  hoursPerDay: number,
-  studyDays: string[],
+  hoursByDay: Partial<Record<StudyWeekday, number>>,
   policy: StudyRoutinePolicy
 ): ScheduleItem[] {
   if (!subjects.length || !policy.blocks.length) return [];
 
   const start = startOfToday();
   const end = addDays(parseDate(examDate), -1);
-  const minutesPerBlock = Math.max(1, Math.round((hoursPerDay * 60) / policy.blocks.length));
   const schedule: ScheduleItem[] = [];
   const topicCursors = new Map<string, number>();
-  const totalStudyDays = new Map<string, number>();
+  const totalStudyMinutes = new Map<string, number>();
   const weeklyStudyDays = new Map<string, Map<string, number>>();
   let previousDaySubjects = new Set<string>();
 
   for (let date = start; date <= end; date = addDays(date, 1)) {
     const weekday = weekdayNames[date.getDay()];
-    if (studyDays.length && !studyDays.includes(weekday)) continue;
+    const availableMinutes = Math.round((hoursByDay[weekday] || 0) * 60);
+    if (availableMinutes <= 0) continue;
+    const minutesByBlock = splitMinutes(availableMinutes, policy.blocks.length);
 
     const week = weekKey(date);
     const weekCounts = weeklyStudyDays.get(week) || new Map<string, number>();
@@ -138,19 +141,22 @@ function buildSchedule(
     const daySubjects = selectSubjectsForDay(
       subjects,
       subjectCount,
-      totalStudyDays,
+      totalStudyMinutes,
       weekCounts,
       previousDaySubjects,
-      policy
+      policy,
+      availableMinutes
     );
 
+    const minutesBySubject = new Map<string, number>();
     policy.blocks.forEach((block, index) => {
       const subject = daySubjects[index % daySubjects.length];
-      schedule.push(createSlot(date, block, subject, minutesPerBlock, topicCursors));
+      schedule.push(createSlot(date, block, subject, minutesByBlock[index], topicCursors));
+      minutesBySubject.set(subject.name, (minutesBySubject.get(subject.name) || 0) + minutesByBlock[index]);
     });
 
     daySubjects.forEach((subject) => {
-      totalStudyDays.set(subject.name, (totalStudyDays.get(subject.name) || 0) + 1);
+      totalStudyMinutes.set(subject.name, (totalStudyMinutes.get(subject.name) || 0) + (minutesBySubject.get(subject.name) || 0));
       weekCounts.set(subject.name, (weekCounts.get(subject.name) || 0) + 1);
     });
     previousDaySubjects = new Set(daySubjects.map((subject) => subject.name));
@@ -159,13 +165,35 @@ function buildSchedule(
   return schedule;
 }
 
+function resolveHoursByDay(routine: StudyPlanRequest["routine"]): Partial<Record<StudyWeekday, number>> {
+  return Object.fromEntries(
+    routine.studyDays
+      .map((day) => {
+        const hours = Number(routine.hoursByDay?.[day] ?? routine.hoursPerDay ?? 0);
+        return [day, Math.max(0, Math.min(12, hours))] as const;
+      })
+      .filter(([, hours]) => hours > 0)
+  );
+}
+
+function splitMinutes(totalMinutes: number, blockCount: number) {
+  const base = Math.floor(totalMinutes / blockCount);
+  const remainder = totalMinutes % blockCount;
+  return Array.from({ length: blockCount }, (_, index) => base + (index < remainder ? 1 : 0));
+}
+
+function formatHours(hours: number) {
+  return `${Number.isInteger(hours) ? hours : hours.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} ${hours === 1 ? "hora" : "horas"}`;
+}
+
 function selectSubjectsForDay(
   subjects: SubjectInput[],
   count: number,
-  totalStudyDays: Map<string, number>,
+  totalStudyMinutes: Map<string, number>,
   weekCounts: Map<string, number>,
   previousDaySubjects: Set<string>,
-  policy: StudyRoutinePolicy
+  policy: StudyRoutinePolicy,
+  availableMinutes: number
 ) {
   const selected: SubjectInput[] = [];
 
@@ -182,8 +210,9 @@ function selectSubjectsForDay(
     }
 
     const next = [...candidates].sort((a, b) => {
-      const aNeed = ((totalStudyDays.get(a.name) || 0) + 1) / subjectPriority(a);
-      const bNeed = ((totalStudyDays.get(b.name) || 0) + 1) / subjectPriority(b);
+      const estimatedMinutes = availableMinutes / Math.max(1, count);
+      const aNeed = ((totalStudyMinutes.get(a.name) || 0) + estimatedMinutes) / subjectPriority(a);
+      const bNeed = ((totalStudyMinutes.get(b.name) || 0) + estimatedMinutes) / subjectPriority(b);
       return aNeed - bNeed || a.name.localeCompare(b.name, "pt-BR");
     })[0];
 

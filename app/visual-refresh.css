@@ -2301,6 +2301,90 @@ textarea:focus {
 
 .day-picker input { accent-color: var(--brand); }
 
+.availability-picker {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  border: 1px solid #cbd4cc;
+  border-radius: 7px;
+  background: #f7f9f7;
+  padding: 16px;
+}
+
+.availability-picker legend {
+  padding: 0 7px;
+  color: var(--navy);
+  font-size: 0.92rem;
+  font-weight: 900;
+}
+
+.availability-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.availability-heading p {
+  margin: 0;
+  color: #65736e;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.availability-heading strong {
+  flex: 0 0 auto;
+  border: 1px solid #a5d5c5;
+  border-radius: 5px;
+  background: #e7f5ef;
+  color: #075f51;
+  padding: 7px 9px;
+  font-size: 0.78rem;
+}
+
+.availability-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.create-form .availability-grid > label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid #d2dad3;
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 10px;
+  color: #64736e;
+  transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.create-form .availability-grid > label.active {
+  border-color: #73b5a6;
+  background: #edf8f4;
+  color: #075f51;
+}
+
+.hours-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 5px;
+}
+
+.create-form .hours-input input {
+  min-width: 0;
+  min-height: 40px;
+  padding: 7px 6px;
+  text-align: center;
+}
+
+.hours-input > span {
+  color: #64736e;
+  font-size: 0.8rem;
+}
+
 .credit-box {
   border-color: #c8d787;
   border-radius: 5px;
@@ -3845,6 +3929,8 @@ textarea:focus {
   }
 
   .form-row { grid-template-columns: 1fr; }
+  .availability-heading { align-items: flex-start; flex-direction: column; }
+  .availability-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
   .quiz-header { padding: 0 18px; }
   .quiz-header::after { left: 18px; }

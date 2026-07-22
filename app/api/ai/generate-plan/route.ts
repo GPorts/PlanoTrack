@@ -5,15 +5,42 @@ import { getUserFromRequest, userHasActiveSubscription } from "@/lib/server-auth
 import { createAdminSupabaseClient } from "@/lib/supabase";
 import type { AiUsage } from "@/lib/openai-plan";
 
-const requestSchema = z.object({
-  mode: z.enum(["ai"]).optional(),
-  routine: z.object({
+const weekdaySchema = z.enum([
+  "Segunda-feira",
+  "Terça-feira",
+  "Quarta-feira",
+  "Quinta-feira",
+  "Sexta-feira",
+  "Sábado",
+  "Domingo"
+]);
+
+const routineSchema = z
+  .object({
     examName: z.string().min(1),
     examDate: z.string().min(1),
-    hoursPerDay: z.number().min(1).max(12),
-    studyDays: z.array(z.string()).min(1),
+    hoursByDay: z.record(z.string(), z.number().min(0.5).max(12)).optional(),
+    hoursPerDay: z.number().min(0.5).max(12).optional(),
+    studyDays: z.array(weekdaySchema).min(1),
     preferredBlocks: z.string().default("")
-  }),
+  })
+  .superRefine((routine, context) => {
+    const missingHours = routine.studyDays.filter(
+      (day) => !Number(routine.hoursByDay?.[day] ?? routine.hoursPerDay)
+    );
+
+    if (missingHours.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["hoursByDay"],
+        message: "Informe as horas disponíveis em todos os dias selecionados."
+      });
+    }
+  });
+
+const requestSchema = z.object({
+  mode: z.enum(["ai"]).optional(),
+  routine: routineSchema,
   editalText: z.string().optional(),
   editalFile: z
     .object({
@@ -83,23 +110,42 @@ export async function POST(request: Request) {
 async function formDataToBody(request: Request) {
   const form = await request.formData();
   const file = form.get("editalFile");
-  const studyDays = String(form.get("studyDays") || "")
+  const legacyStudyDays = String(form.get("studyDays") || "")
     .split(",")
     .map((day) => day.trim())
     .filter(Boolean);
+  const hoursByDay = parseHoursByDay(form.get("hoursByDay"));
+  const studyDays = Object.keys(hoursByDay).length ? Object.keys(hoursByDay) : legacyStudyDays;
+  const legacyHoursPerDay = Number(form.get("hoursPerDay") || 0);
 
   return {
     mode: "ai",
     routine: {
       examName: String(form.get("examName") || ""),
       examDate: String(form.get("examDate") || ""),
-      hoursPerDay: Number(form.get("hoursPerDay") || 0),
+      hoursByDay,
+      hoursPerDay: legacyHoursPerDay > 0 ? legacyHoursPerDay : undefined,
       studyDays,
       preferredBlocks: String(form.get("preferredBlocks") || "")
     },
     editalText: String(form.get("editalText") || ""),
     editalFile: file instanceof File && file.size > 0 ? await serializeFile(file) : undefined
   };
+}
+
+function parseHoursByDay(value: FormDataEntryValue | null) {
+  if (typeof value !== "string" || !value.trim()) return {};
+
+  try {
+    const parsed = JSON.parse(value) as Record<string, unknown>;
+    return Object.fromEntries(
+      Object.entries(parsed)
+        .map(([day, hours]) => [day, Number(hours)] as const)
+        .filter(([, hours]) => Number.isFinite(hours) && hours > 0)
+    );
+  } catch {
+    return {};
+  }
 }
 
 async function serializeFile(file: File) {

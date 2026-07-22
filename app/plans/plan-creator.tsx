@@ -3,14 +3,17 @@
 import { useState } from "react";
 import { Loader2, Sparkles } from "lucide-react";
 import { PlanPreview } from "@/components/PlanPreview";
-import type { GeneratedPlan } from "@/lib/types";
+import type { GeneratedPlan, StudyWeekday } from "@/lib/types";
 
-const weekdays = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+const weekdays: StudyWeekday[] = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"];
 
 export function PlanCreator() {
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState<GeneratedPlan | null>(null);
   const [error, setError] = useState("");
+  const [hoursByDay, setHoursByDay] = useState<Record<StudyWeekday, string>>(
+    () => Object.fromEntries(weekdays.map((day) => [day, ""])) as Record<StudyWeekday, string>
+  );
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -18,8 +21,20 @@ export function PlanCreator() {
     setError("");
 
     const form = new FormData(event.currentTarget);
-    const selectedDays = weekdays.filter((day) => form.get(day) === "on");
+    const availability = Object.fromEntries(
+      weekdays
+        .map((day) => [day, Number(hoursByDay[day])] as const)
+        .filter(([, hours]) => Number.isFinite(hours) && hours > 0)
+    );
+    const selectedDays = Object.keys(availability);
     form.set("studyDays", selectedDays.join(","));
+    form.set("hoursByDay", JSON.stringify(availability));
+
+    if (!selectedDays.length) {
+      setLoading(false);
+      setError("Informe as horas de estudo de pelo menos um dia da semana.");
+      return;
+    }
 
     const response = await fetch("/api/ai/generate-plan", {
       method: "POST",
@@ -39,7 +54,7 @@ export function PlanCreator() {
 
   return (
     <section className="grid-2">
-      <form className="card form" onSubmit={submit}>
+      <form className="card form create-form" onSubmit={submit}>
         <div className="split-fields">
           <label className="field">
             Nome da prova
@@ -51,24 +66,34 @@ export function PlanCreator() {
           </label>
         </div>
 
-        <div className="split-fields">
-          <label className="field">
-            Horas por dia
-            <input name="hoursPerDay" type="number" min="1" max="12" defaultValue="6" required />
-          </label>
-          <label className="field">
-            Edital em arquivo
-            <input name="editalFile" type="file" accept=".pdf,.txt,.md,.doc,.docx,application/pdf,text/plain" />
-          </label>
-        </div>
+        <label className="field">
+          Edital em arquivo
+          <input name="editalFile" type="file" accept=".pdf,.txt,.md,.doc,.docx,application/pdf,text/plain" />
+        </label>
 
-        <fieldset className="card" style={{ boxShadow: "none", padding: 12 }}>
-          <legend style={{ fontWeight: 900 }}>Dias de estudo</legend>
-          <div className="grid" style={{ gap: 8, marginTop: 10 }}>
+        <fieldset className="availability-picker">
+          <legend>Horas de estudo por dia</legend>
+          <div className="availability-heading">
+            <p>Deixe em branco os dias em que você não pretende estudar.</p>
+            <strong>{formatWeeklyHours(hoursByDay)} por semana</strong>
+          </div>
+          <div className="availability-grid">
             {weekdays.map((day) => (
-              <label key={day} style={{ display: "flex", gap: 8, alignItems: "center", fontWeight: 700 }}>
-                <input name={day} type="checkbox" defaultChecked style={{ width: "auto" }} />
-                {day.replace("-feira", "")}
+              <label className={Number(hoursByDay[day]) > 0 ? "active" : ""} key={day}>
+                <span>{day.replace("-feira", "")}</span>
+                <span className="hours-input">
+                  <input
+                    aria-label={`${day}: horas de estudo`}
+                    max="12"
+                    min="0.5"
+                    placeholder="0"
+                    step="0.5"
+                    type="number"
+                    value={hoursByDay[day]}
+                    onChange={(event) => setHoursByDay((current) => ({ ...current, [day]: event.target.value }))}
+                  />
+                  <span>h</span>
+                </span>
               </label>
             ))}
           </div>
@@ -116,5 +141,13 @@ export function PlanCreator() {
       )}
     </section>
   );
+}
+
+function formatWeeklyHours(hoursByDay: Record<StudyWeekday, string>) {
+  const minutes = Math.round(weekdays.reduce((sum, day) => sum + (Number(hoursByDay[day]) || 0), 0) * 60);
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (!rest) return `${hours}h`;
+  return `${hours}h ${rest}min`;
 }
 

@@ -56,6 +56,7 @@ export async function generatePlanWithAi(input: StudyPlanRequest, onUsage?: (usa
           "Para cada disciplina, extraia todos os tópicos e subtópicos cobrados.",
           "Quando houver tabela, preencha questions com o número de questões e weight com o total de pontos da disciplina (número de questões multiplicado pelo peso por questão).",
           "Interprete routine.preferredBlocks como uma instrução livre e obrigatória do usuário, não como uma sugestão.",
+          "Considere routine.hoursByDay como a disponibilidade real do usuário em cada dia da semana. Não transforme essa carga em uma média fixa por dia.",
           "Converta a rotina em routinePolicy e inclua somente os períodos citados quando eles forem claros.",
           "Em cada bloco, instruction deve preservar a atividade pedida, por exemplo: Ler lei seca, Ler doutrina/caderno ou Resolver questões da matéria do dia.",
           "Se o usuário pedir uma matéria por dia, use maxSubjectsPerDay = 1; todos os blocos daquele dia estudarão essa mesma disciplina.",
@@ -63,6 +64,7 @@ export async function generatePlanWithAi(input: StudyPlanRequest, onUsage?: (usa
           "Se pedir para alternar ou intercalar matérias, use avoidConsecutiveSubjectDays = true.",
           "Classifique cada bloco corretamente: resolver questões ou exercícios = questoes; revisar = revisao; leitura, lei seca, doutrina, caderno ou aula = teoria.",
           "Não crie o calendário data por data. O sistema fará a distribuição até a prova usando a política interpretada.",
+          "No resumo, descreva a disponibilidade semanal sem afirmar que todos os dias têm a mesma quantidade de horas.",
           "Não invente tópicos se o edital estiver anexado ou colado; normalize nomes e remova duplicidades."
         ],
         routine: input.routine,

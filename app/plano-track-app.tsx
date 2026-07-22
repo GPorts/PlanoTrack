@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { BellRing, Brain, CalendarDays, ChartSpline, Check, CirclePlay, ClipboardList, Download, LayoutDashboard, LibraryBig, ListChecks, LogOut, NotebookPen, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { createBrowserSupabaseClient } from "@/lib/supabase";
-import type { ErrorEntry, GeneratedPlan, ReviewState, ScheduleItem, SimulationRecord, StudySessionRecord, SubjectInput } from "@/lib/types";
+import type { ErrorEntry, GeneratedPlan, ReviewState, ScheduleItem, SimulationRecord, StudySessionRecord, StudyWeekday, SubjectInput } from "@/lib/types";
 import { AdaptiveOverview, ErrorsView, MaterialsView, RecoveryModal, ReviewsView, SessionExecutionModal, SimulationsView } from "./adaptive-features";
 
 type View = "dashboard" | "create" | "calendar" | "goals" | "subjects" | "sessions" | "reviews" | "errors" | "simulations" | "materials";
@@ -80,6 +80,7 @@ const storedPlanSelect =
 
 const colors = ["#087c68", "#1f5eff", "#f65d5b", "#0b1f3a", "#b4ca18", "#0e8aa5", "#4f46e5", "#187b4d", "#d97706", "#64748b"];
 const calendarColors = ["#087c68", "#1f5eff", "#f65d5b", "#0b1f3a", "#82960d", "#0e8aa5", "#4f46e5"];
+const studyWeekdays: StudyWeekday[] = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"];
 const initialSubjects: Subject[] = [];
 const initialSchedule: ScheduleItem[] = [];
 const initialGoals: Goal[] = [];
@@ -1091,6 +1092,10 @@ function Dashboard({
 function CreatePlan({ onPlanGenerated }: { onPlanGenerated: (plan: GeneratedPlan) => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [hoursByDay, setHoursByDay] = useState<Record<StudyWeekday, string>>(
+    () => Object.fromEntries(studyWeekdays.map((day) => [day, ""])) as Record<StudyWeekday, string>
+  );
+  const weeklyHours = studyWeekdays.reduce((sum, day) => sum + (Number(hoursByDay[day]) || 0), 0);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1098,15 +1103,19 @@ function CreatePlan({ onPlanGenerated }: { onPlanGenerated: (plan: GeneratedPlan
     setError("");
 
     const form = new FormData(event.currentTarget);
-    const days = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"].filter(
-      (day) => form.get(day) === "on"
+    const availability = Object.fromEntries(
+      studyWeekdays
+        .map((day) => [day, Number(hoursByDay[day])] as const)
+        .filter(([, hours]) => Number.isFinite(hours) && hours > 0)
     );
+    const days = Object.keys(availability);
 
     form.set("studyDays", days.join(","));
+    form.set("hoursByDay", JSON.stringify(availability));
 
     if (!days.length) {
       setLoading(false);
-      setError("Selecione pelo menos um dia de estudo.");
+      setError("Informe as horas de estudo de pelo menos um dia da semana.");
       return;
     }
 
@@ -1164,25 +1173,38 @@ function CreatePlan({ onPlanGenerated }: { onPlanGenerated: (plan: GeneratedPlan
             <input name="examDate" type="date" min={tomorrowIso()} required />
           </label>
         </div>
-        <div className="form-row">
-          <label>
-            Horas por dia
-            <input name="hoursPerDay" type="number" min="1" max="12" required />
-          </label>
-          <label>
-            Edital em arquivo
-            <input name="editalFile" type="file" accept=".pdf,.txt,.md,application/pdf,text/plain,text/markdown" />
-          </label>
-        </div>
+        <label>
+          Edital em arquivo
+          <input name="editalFile" type="file" accept=".pdf,.txt,.md,application/pdf,text/plain,text/markdown" />
+        </label>
 
-        <fieldset className="day-picker">
-          <legend>Dias de estudo</legend>
-          {["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"].map((day) => (
-            <label key={day}>
-              <input name={day} type="checkbox" defaultChecked />
-              {day.replace("-feira", "")}
-            </label>
-          ))}
+        <fieldset className="availability-picker">
+          <legend>Horas de estudo por dia</legend>
+          <div className="availability-heading">
+            <p>Preencha somente os dias em que você pretende estudar. Use 1,5 para uma hora e meia.</p>
+            <strong>{formatWeeklyHours(weeklyHours)} por semana</strong>
+          </div>
+          <div className="availability-grid">
+            {studyWeekdays.map((day) => (
+              <label className={Number(hoursByDay[day]) > 0 ? "active" : ""} key={day}>
+                <span>{day.replace("-feira", "")}</span>
+                <span className="hours-input">
+                  <input
+                    aria-label={`${day}: horas de estudo`}
+                    inputMode="decimal"
+                    max="12"
+                    min="0.5"
+                    placeholder="0"
+                    step="0.5"
+                    type="number"
+                    value={hoursByDay[day]}
+                    onChange={(event) => setHoursByDay((current) => ({ ...current, [day]: event.target.value }))}
+                  />
+                  <span>h</span>
+                </span>
+              </label>
+            ))}
+          </div>
         </fieldset>
 
         <label>
@@ -2035,6 +2057,12 @@ function formatHours(totalMinutes: number) {
   if (!hours) return `${minutes}min`;
   if (!minutes) return `${hours}h`;
   return `${hours}h ${minutes}min`;
+}
+
+function formatWeeklyHours(value: number) {
+  const totalMinutes = Math.round(value * 60);
+  if (!totalMinutes) return "0h";
+  return formatHours(totalMinutes);
 }
 
 function formatDate(value: string) {
