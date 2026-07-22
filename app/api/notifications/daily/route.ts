@@ -7,6 +7,7 @@ export async function GET(request: Request) {
   if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
   const resendKey = getEnv("RESEND_API_KEY");
   const from = getEnv("NOTIFICATION_FROM_EMAIL");
+  const replyTo = getEnv("NOTIFICATION_REPLY_TO_EMAIL");
   const supabase = createAdminSupabaseClient();
   if (!supabase || !resendKey || !from) return NextResponse.json({ error: "Notificações por e-mail não configuradas." }, { status: 503 });
 
@@ -38,7 +39,7 @@ export async function GET(request: Request) {
     const userItems = itemsByUser.get(userId) || [];
     if (!email || !userItems.length) continue;
     const rows = userItems.slice(0, 5).map((item) => `<li><strong>${escapeHtml(item.subject_name)}</strong> · ${escapeHtml(item.period)} · ${item.minutes} min<br>${escapeHtml(item.topic_title)}</li>`).join("");
-    const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" }, body: JSON.stringify({ from, to: [email], subject: "Seu foco de estudo de hoje", html: `<h1>Seu plano de hoje</h1><ul>${rows}</ul><p><a href="${getEnv("NEXT_PUBLIC_APP_URL") || "https://www.planotracker.online"}/app">Abrir PlanoTracker</a></p>` }) });
+    const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" }, body: JSON.stringify({ from, to: [email], subject: "Seu foco de estudo de hoje", html: `<h1>Seu plano de hoje</h1><ul>${rows}</ul><p><a href="${getEnv("NEXT_PUBLIC_APP_URL") || "https://www.planotracker.online"}/app">Abrir PlanoTracker</a></p>`, ...(replyTo ? { reply_to: replyTo } : {}) }) });
     if (response.ok) sent += 1;
   }
   return NextResponse.json({ sent });

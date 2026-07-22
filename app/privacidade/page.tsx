@@ -28,7 +28,7 @@ export default function PrivacyPage() {
         <p>Você pode solicitar confirmação de tratamento, acesso, correção, portabilidade quando aplicável, informação sobre compartilhamento e exclusão dos dados, respeitadas as hipóteses legais de retenção.</p>
 
         <h2>Contato</h2>
-        <p>Para dúvidas ou solicitações sobre privacidade, escreva para <a href="mailto:gustavorossiniports@gmail.com">gustavorossiniports@gmail.com</a>.</p>
+        <p>Para dúvidas ou solicitações sobre privacidade, escreva para <a href="mailto:contato.planotracker@gmail.com">contato.planotracker@gmail.com</a>.</p>
       </article>
     </main>
   );

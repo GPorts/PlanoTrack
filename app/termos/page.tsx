@@ -31,7 +31,7 @@ export default function TermsPage() {
         <p>Buscamos manter o serviço disponível e preservar os dados, mas podem ocorrer manutenções, indisponibilidades de fornecedores e mudanças necessárias para segurança ou evolução do produto.</p>
 
         <h2>Contato</h2>
-        <p>Dúvidas, cancelamentos e solicitações: <a href="mailto:gustavorossiniports@gmail.com">gustavorossiniports@gmail.com</a>.</p>
+        <p>Dúvidas, cancelamentos e solicitações: <a href="mailto:contato.planotracker@gmail.com">contato.planotracker@gmail.com</a>.</p>
       </article>
     </main>
   );

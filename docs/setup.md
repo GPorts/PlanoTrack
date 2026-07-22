@@ -58,5 +58,5 @@ user_id={{id do usuário no PlanoTracker}}
 - A instalação como aplicativo usa `/manifest.webmanifest` e `/sw.js`.
 - O botão **Ativar lembretes** solicita a permissão do navegador; não é necessário adicionar chave.
 - A agenda pode ser exportada em `.ics` e importada no Google Calendar, Outlook ou Apple Calendar.
-- Para o resumo diário por e-mail, configure `RESEND_API_KEY`, `NOTIFICATION_FROM_EMAIL` e `CRON_SECRET` na Vercel. O cron de `vercel.json` roda diariamente às 08h no horário de Brasília.
+- Para o resumo diário por e-mail, configure `RESEND_API_KEY`, `NOTIFICATION_FROM_EMAIL`, `NOTIFICATION_REPLY_TO_EMAIL` e `CRON_SECRET` na Vercel. Use `PlanoTracker <lembretes@email.planotracker.online>` como remetente e `contato.planotracker@gmail.com` como endereço de resposta. O cron de `vercel.json` roda diariamente às 08h no horário de Brasília.
 - A sincronização OAuth bidirecional com Google Calendar exige credenciais do Google; a exportação `.ics` já funciona sem credenciais.

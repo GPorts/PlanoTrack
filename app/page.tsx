@@ -439,7 +439,7 @@ export default function HomePage() {
           <a href="#pricing">Planos</a>
           <Link href="/termos">Termos</Link>
           <Link href="/privacidade">Privacidade</Link>
-          <a href="mailto:gustavorossiniports@gmail.com">Suporte</a>
+          <a href="mailto:contato.planotracker@gmail.com">Suporte</a>
         </nav>
       </footer>
     </main>
