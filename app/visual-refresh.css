@@ -1198,7 +1198,7 @@ textarea:focus {
 
 .landing-price-badge {
   align-self: flex-start;
-  margin: -47px 0 24px;
+  margin: 0;
   border: 1px solid var(--lime);
   border-radius: 5px;
   background: var(--lime);

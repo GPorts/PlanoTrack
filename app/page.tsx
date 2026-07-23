@@ -2,18 +2,21 @@ import Link from "next/link";
 import {
   ArrowRight,
   BarChart3,
+  Brain,
   BookOpenCheck,
   CalendarDays,
   CheckCircle2,
+  ChartSpline,
   Clock3,
   ExternalLink,
   Gauge,
   GraduationCap,
+  Layers3,
   ListChecks,
+  ListRestart,
   LockKeyhole,
   MessageCircleQuestion,
   Newspaper,
-  RefreshCw,
   Route,
   ShieldCheck,
   Sparkles,
@@ -32,34 +35,60 @@ const features = [
     icon: <Upload size={22} />,
     number: "01",
     title: "O edital vira uma rota",
-    text: "A IA separa disciplinas e subtópicos e transforma o conteúdo em uma sequência executável."
+    text: "Envie o PDF ou cole o conteúdo. A IA separa disciplinas e subtópicos e transforma o edital em uma sequência executável até a prova."
   },
   {
     icon: <CalendarDays size={22} />,
     number: "02",
-    title: "A rotina define o calendário",
-    text: "Você informa dias, horários e método. O plano respeita sua disponibilidade real até a prova."
+    title: "Cada dia respeita sua disponibilidade",
+    text: "Defina quantas horas cabem em cada dia e descreva como prefere estudar. O calendário distribui a carga sem presumir uma rotina padrão."
+  },
+  {
+    icon: <Clock3 size={22} />,
+    number: "03",
+    title: "A sessão sai do papel",
+    text: "Inicie o cronômetro, pause quando precisar e registre tempo real, questões, acertos, dificuldade, confiança e observações."
   },
   {
     icon: <Gauge size={22} />,
-    number: "03",
-    title: "Prioridades ficam visíveis",
-    text: "Pesos, quantidade de questões e progresso ajudam a concentrar energia no que mais importa."
+    number: "04",
+    title: "O painel mostra o risco da rota",
+    text: "Compare conteúdo restante, horas disponíveis, aderência e dias até a prova. Saiba se o plano está confortável, apertado ou inviável."
   },
   {
-    icon: <RefreshCw size={22} />,
-    number: "04",
-    title: "O plano acompanha a semana",
-    text: "Calendário, disciplinas e sessões continuam editáveis quando sua rotina precisar mudar."
+    icon: <ListRestart size={22} />,
+    number: "05",
+    title: "Atrasos não exigem começar do zero",
+    text: "O Modo Recuperação redistribui sessões pendentes nos próximos dias disponíveis e mostra uma prévia antes de aplicar qualquer mudança."
+  },
+  {
+    icon: <Brain size={22} />,
+    number: "06",
+    title: "Revisões entram na hora certa",
+    text: "Seu feedback depois das sessões alimenta uma fila de revisões espaçadas e um mapa de risco por subtópico."
+  },
+  {
+    icon: <ChartSpline size={22} />,
+    number: "07",
+    title: "Erros e simulados viram informação",
+    text: "Registre erros por tipo e resultados de simulados para acompanhar domínio, desempenho por matéria e preparação atual."
+  },
+  {
+    icon: <Layers3 size={22} />,
+    number: "08",
+    title: "Seus materiais viram prática",
+    text: "Gere quizzes e flashcards somente a partir do material enviado, com trechos da fonte e integração ao caderno de erros."
   }
 ];
 
 const planFeatures = [
   "Planos de estudo ilimitados com IA",
-  "Dashboard web completo",
-  "Calendário, metas e disciplinas",
-  "Organização por peso do edital",
-  "Registro de sessões e questões",
+  "Rota adaptativa e Modo Recuperação",
+  "Cronômetro e registro completo de sessões",
+  "Revisões espaçadas e mapa de risco",
+  "Caderno de erros e simulados",
+  "Quizzes e flashcards a partir dos seus materiais",
+  "Calendário, metas e disciplinas editáveis",
   "Suporte por e-mail"
 ];
 
@@ -107,6 +136,26 @@ const faqs = [
     question: "Posso editar o plano depois?",
     answer:
       "Sim. Depois que a IA cria a primeira versão, você pode alterar o calendário, as disciplinas, os pesos, as metas e registrar suas sessões de estudo."
+  },
+  {
+    question: "Posso estudar quantidades diferentes em cada dia?",
+    answer:
+      "Sim. Você informa as horas disponíveis em cada dia da semana. Pode, por exemplo, estudar duas horas na segunda, quatro no sábado e deixar outros dias livres."
+  },
+  {
+    question: "O que acontece quando eu atraso uma sessão?",
+    answer:
+      "O Modo Recuperação encontra novos espaços no calendário e mostra uma prévia da redistribuição. Sessões já concluídas não são alteradas automaticamente."
+  },
+  {
+    question: "Como funcionam as revisões?",
+    answer:
+      "Depois de uma sessão, você informa se esqueceu o conteúdo ou se ele pareceu difícil, bom ou fácil. Esse feedback ajuda o sistema a priorizar as próximas revisões."
+  },
+  {
+    question: "A IA inventa conteúdo nos quizzes e flashcards?",
+    answer:
+      "Essa ferramenta é orientada a usar somente o material que você enviar e exibe o trecho de origem em cada resposta. Ainda assim, vale conferir o material gerado antes de estudar."
   },
   {
     question: "O pagamento é seguro?",
@@ -159,8 +208,8 @@ export default function HomePage() {
           </p>
           <h1>Seu plano de estudo, do edital até a prova.</h1>
           <p className="sales-lead">
-            A IA organiza matérias, prioridades e sessões na sua rotina. Você abre o painel e sabe o que estudar hoje,
-            sem perder o controle quando a semana muda.
+            A IA organiza matérias, prioridades e sessões na sua rotina. Depois, o PlanoTracker acompanha o que você
+            realmente cumpriu, mostra riscos e ajuda a reorganizar a rota quando a semana muda.
           </p>
           <div className="sales-actions">
             <a className="sales-button" href="#pricing">
@@ -175,7 +224,7 @@ export default function HomePage() {
               <Clock3 size={16} /> Plano em minutos
             </span>
             <span>
-              <CheckCircle2 size={16} /> Totalmente editável
+              <CheckCircle2 size={16} /> Rota adaptativa e editável
             </span>
             <span>
               <ShieldCheck size={16} /> 7 dias de garantia
@@ -202,7 +251,7 @@ export default function HomePage() {
           <div className="mock-window">
             <div className="mock-titlebar">
               <span className="mock-dots" aria-hidden="true"><i /><i /><i /></span>
-              <strong>PLANO EM ANDAMENTO</strong>
+              <strong>ROTA EM ANDAMENTO</strong>
               <span>SEMANA 04</span>
             </div>
             <div className="mock-sidebar">
@@ -219,7 +268,7 @@ export default function HomePage() {
                   <small>Reta final</small>
                   <strong>Minha semana</strong>
                 </div>
-                <span className="mock-sync"><i /> Rotina sincronizada</span>
+                <span className="mock-sync"><i /> Rota confortável</span>
               </div>
               <div className="mock-stats">
                 <span>Hoje <strong>3h20</strong></span>
@@ -256,17 +305,17 @@ export default function HomePage() {
       <section className="sales-route-strip" aria-label="Da análise ao acompanhamento">
         <span><strong>01</strong> Edital analisado</span>
         <span><strong>02</strong> Rotina calibrada</span>
-        <span><strong>03</strong> Semana distribuída</span>
-        <span><strong>04</strong> Progresso visível</span>
+        <span><strong>03</strong> Execução medida</span>
+        <span><strong>04</strong> Rota ajustada</span>
       </section>
 
       <section className="sales-section problem-section" id="features">
         <div className="sales-section-title">
           <p className="sales-kicker"><Target size={16} /> Clareza antes de começar</p>
-          <h2>Você não precisa decidir tudo de novo a cada sessão.</h2>
+          <h2>Mais do que gerar um cronograma: acompanhar a rota até a prova.</h2>
           <p>
             O edital costuma dizer o que será cobrado, mas não como distribuir centenas de tópicos na rotina. O
-            PlanoTracker transforma esse volume em próximas ações visíveis.
+            PlanoTracker transforma esse volume em próximas ações, registra sua execução e ajuda a corrigir o caminho.
           </p>
         </div>
 
@@ -287,16 +336,17 @@ export default function HomePage() {
       <section className="sales-section split-section">
         <div className="split-copy">
           <p className="sales-kicker"><CalendarDays size={16} /> Uma semana que você entende de relance</p>
-          <h2>Cada bloco tem hora, matéria e intenção.</h2>
+          <h2>Planejado e realizado ficam no mesmo lugar.</h2>
           <p>
-            Teoria, lei seca, revisão ou questões entram no período definido por você. As cores ajudam a enxergar o
-            ritmo sem transformar seu cronograma em uma planilha interminável.
+            Teoria, lei seca, revisão, questões e simulados entram nos períodos definidos por você. Ao estudar, o
+            cronômetro e o feedback atualizam seu histórico e deixam o próximo passo mais claro.
           </p>
           <ul className="check-list">
-            <li><CheckCircle2 size={19} /> Dias e períodos configuráveis</li>
-            <li><CheckCircle2 size={19} /> Matérias priorizadas por peso</li>
+            <li><CheckCircle2 size={19} /> Carga diferente para cada dia da semana</li>
+            <li><CheckCircle2 size={19} /> Matérias priorizadas por peso, questões e desempenho</li>
             <li><CheckCircle2 size={19} /> Calendário criado até a véspera da prova</li>
-            <li><CheckCircle2 size={19} /> Ajustes manuais sempre disponíveis</li>
+            <li><CheckCircle2 size={19} /> Cronômetro, questões, acertos e observações por sessão</li>
+            <li><CheckCircle2 size={19} /> Ajustes manuais e recuperação de atrasos</li>
           </ul>
         </div>
 
@@ -326,12 +376,12 @@ export default function HomePage() {
       <section className="sales-section how-section" id="how-it-works">
         <div className="sales-section-title">
           <p className="sales-kicker"><Route size={16} /> Como funciona</p>
-          <h2>Do arquivo ao primeiro dia de estudo.</h2>
+          <h2>Do arquivo a uma rota que acompanha sua execução.</h2>
         </div>
         <div className="steps-grid">
-          <article><span>01</span><div><h3>Envie o edital</h3><p>Anexe o PDF ou cole o conteúdo programático da sua prova.</p></div></article>
-          <article><span>02</span><div><h3>Descreva sua rotina</h3><p>Informe prazo, dias disponíveis e como prefere estudar em cada período.</p></div></article>
-          <article><span>03</span><div><h3>Receba sua rota</h3><p>A IA organiza o calendário e você ajusta tudo conforme a vida real.</p></div></article>
+          <article><span>01</span><div><h3>Monte a primeira rota</h3><p>Envie o edital, informe a prova, as horas de cada dia e descreva sua rotina desejada.</p></div></article>
+          <article><span>02</span><div><h3>Execute e registre</h3><p>Abra o foco de hoje, use o cronômetro e registre questões, acertos, dificuldade e progresso.</p></div></article>
+          <article><span>03</span><div><h3>Ajuste com dados reais</h3><p>Recupere atrasos, revise pontos frágeis e acompanhe o risco da rota sem perder o que já concluiu.</p></div></article>
         </div>
       </section>
 
@@ -340,8 +390,8 @@ export default function HomePage() {
           <p className="sales-kicker"><BookOpenCheck size={16} /> Sem promessa mágica</p>
           <h2>Organização não substitui o estudo. Ela ajuda o estudo a acontecer.</h2>
           <p>
-            O PlanoTracker não garante aprovação. Ele organiza conteúdo, prazo e rotina para reduzir improvisos e
-            tornar o avanço mais fácil de acompanhar.
+            O PlanoTracker não garante aprovação. Ele combina planejamento, execução, revisão e acompanhamento para
+            reduzir improvisos e tornar o avanço mais fácil de entender.
           </p>
         </div>
         <div className="evidence-grid">
@@ -370,7 +420,7 @@ export default function HomePage() {
         <div className="sales-section-title">
           <p className="sales-kicker"><Sparkles size={16} /> Acesso completo</p>
           <h2>Um único produto. Três formas de assinar.</h2>
-          <p>Todos os planos liberam os mesmos recursos e permitem criar planos de estudo ilimitados.</p>
+          <p>Todos os planos liberam a experiência completa, da leitura do edital ao acompanhamento adaptativo da preparação.</p>
         </div>
         <div className="landing-pricing-grid">
           {pricingPlans.map((plan) => (
@@ -424,7 +474,7 @@ export default function HomePage() {
         <SignalBars />
         <p className="sales-kicker">Sua próxima sessão começa antes de sentar para estudar</p>
         <h2>Abra o painel e saiba qual é o próximo passo.</h2>
-        <p>Transforme o edital em um plano claro, acompanhe o avanço e ajuste a rota sem começar do zero.</p>
+        <p>Transforme o edital em uma rota clara, registre o que aconteceu e ajuste os próximos dias sem começar do zero.</p>
         <a className="sales-button" href="#pricing">Ver planos <ArrowRight size={20} /></a>
       </section>
 
