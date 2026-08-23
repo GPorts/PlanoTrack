@@ -19,6 +19,7 @@ export function LoginForm() {
   useEffect(() => {
     const savedEmail = window.localStorage.getItem(savedEmailKey);
     if (savedEmail) setEmail(savedEmail);
+    if (new URLSearchParams(window.location.search).get("mode") === "signup") setMode("signup");
   }, []);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -86,9 +87,16 @@ export function LoginForm() {
         <p>
           {mode === "signin"
             ? "Seu plano está esperando por você."
-            : "Comece sua rota de estudos no PlanoTracker."}
+            : "Teste o PlanoTracker por 7 dias, sem informar cartão."}
         </p>
       </div>
+
+      {mode === "signup" ? (
+        <div className="trial-signup-note">
+          <strong>Seu primeiro plano com IA está incluído</strong>
+          <span>Os 7 dias só começam quando você gerar o plano.</span>
+        </div>
+      ) : null}
 
       <div className="auth-tabs" aria-label="Tipo de acesso">
         <button className={mode === "signin" ? "active" : ""} type="button" onClick={() => setMode("signin")}>
@@ -126,10 +134,10 @@ export function LoginForm() {
       {message ? <div className="notice">{message}</div> : null}
 
       <button className="button" type="submit" disabled={loading}>
-        {loading ? "Aguarde..." : mode === "signin" ? "Entrar" : "Criar conta"}
+        {loading ? "Aguarde..." : mode === "signin" ? "Entrar" : "Começar teste grátis"}
       </button>
 
-      <p className="login-security-note">Acesso protegido e vinculado ao seu e-mail.</p>
+      <p className="login-security-note">{mode === "signup" ? "Sem cartão e sem cobrança automática." : "Acesso protegido e vinculado ao seu e-mail."}</p>
     </form>
   );
 }

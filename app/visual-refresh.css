@@ -1288,6 +1288,67 @@ textarea:focus {
 
 .trust-row svg { color: var(--lime); }
 
+.trial-offer-section {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(24px, 4vw, 54px);
+  width: 100%;
+  max-width: none;
+  background: var(--lime);
+  padding: 62px max(5vw, calc((100vw - 1400px) / 2));
+}
+
+.trial-offer-number {
+  color: var(--navy);
+  font-size: clamp(4.4rem, 8vw, 7.5rem);
+  font-weight: 950;
+  line-height: 0.8;
+}
+
+.trial-offer-copy h2 {
+  max-width: 820px;
+  margin: 8px 0 12px;
+  color: var(--navy);
+  font-size: clamp(2rem, 4vw, 3.3rem);
+  line-height: 1.02;
+}
+
+.trial-offer-copy > p:last-of-type {
+  max-width: 780px;
+  margin: 0;
+  color: #425013;
+  line-height: 1.6;
+}
+
+.trial-offer-points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin-top: 20px;
+  color: var(--navy);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.trial-offer-points span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.trial-offer-section > .sales-button {
+  border-color: var(--navy);
+  background: var(--navy);
+  box-shadow: 7px 7px 0 var(--coral);
+  white-space: nowrap;
+}
+
+.trial-offer-section > .sales-button:hover {
+  background: #ffffff;
+  color: var(--navy);
+}
+
 .guarantee-section {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -1573,6 +1634,25 @@ textarea:focus {
   margin: 0;
   color: var(--muted);
   line-height: 1.5;
+}
+
+.trial-signup-note {
+  display: grid;
+  gap: 4px;
+  border-left: 5px solid var(--lime);
+  border-radius: 5px;
+  background: #f5fbdc;
+  padding: 13px 15px;
+  color: var(--navy);
+}
+
+.trial-signup-note strong {
+  font-size: 0.9rem;
+}
+
+.trial-signup-note span {
+  color: #5c6952;
+  font-size: 0.8rem;
 }
 
 .auth-tabs {
@@ -1877,6 +1957,54 @@ textarea:focus {
 .planner-main {
   min-width: 0;
   padding: 28px clamp(20px, 3vw, 42px) 50px;
+}
+
+.trial-banner {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+  border: 1px solid #b9ca37;
+  border-radius: 7px;
+  background: #f5fbdc;
+  padding: 14px 16px;
+  color: var(--navy);
+}
+
+.trial-banner-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 5px;
+  background: var(--lime);
+}
+
+.trial-banner strong,
+.trial-banner p {
+  display: block;
+}
+
+.trial-banner p {
+  margin: 3px 0 0;
+  color: #59674f;
+  font-size: 0.8rem;
+}
+
+.trial-banner > a {
+  min-height: 38px;
+  border: 1px solid var(--navy);
+  border-radius: 5px;
+  padding: 9px 13px;
+  font-size: 0.78rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.trial-banner > a:hover {
+  background: var(--navy);
+  color: #ffffff;
 }
 
 .planner-topbar {
@@ -2390,6 +2518,32 @@ textarea:focus {
   border-radius: 5px;
   background: rgba(221, 243, 67, 0.22);
   color: #536111;
+}
+
+.trial-generation-limit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border: 1px solid #b8c5bc;
+  border-radius: 6px;
+  background: #eef3ef;
+  padding: 16px;
+}
+
+.trial-generation-limit strong,
+.trial-generation-limit span {
+  display: block;
+}
+
+.trial-generation-limit span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.trial-generation-limit .primary-button {
+  flex: 0 0 auto;
 }
 
 .notice {
@@ -3705,6 +3859,15 @@ textarea:focus {
   .landing-price-card { min-height: auto; }
   .landing-price-card.featured { margin: 14px 0 10px; }
 
+  .trial-offer-section {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .trial-offer-section > .sales-button {
+    grid-column: 2;
+    justify-self: start;
+  }
+
   .sales-footer {
     grid-template-columns: 1fr;
     justify-items: center;
@@ -3863,6 +4026,20 @@ textarea:focus {
     padding: 72px 18px;
   }
 
+  .trial-offer-section {
+    grid-template-columns: 1fr;
+    padding: 58px 18px;
+  }
+
+  .trial-offer-number {
+    font-size: 4.6rem;
+  }
+
+  .trial-offer-section > .sales-button {
+    grid-column: 1;
+    width: 100%;
+  }
+
   .board-grid {
     overflow-x: auto;
     grid-template-columns: repeat(7, 74px);
@@ -3897,10 +4074,24 @@ textarea:focus {
     min-height: auto;
   }
 
+  .trial-banner {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .trial-banner > a {
+    grid-column: 1 / -1;
+    text-align: center;
+  }
+
   .top-actions {
     display: grid;
     grid-template-columns: 1fr;
     width: 100%;
+  }
+
+  .trial-generation-limit {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .plan-selector { max-width: none; }

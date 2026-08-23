@@ -11,6 +11,8 @@ Stack escolhida:
 
 Recursos principais:
 
+- Teste gratuito de 7 dias sem cartão, iniciado na primeira geração com IA.
+- Uma geração completa com IA durante o teste, com dados preservados após o término.
 - Assinaturas mensal, trimestral e anual.
 - Assinatura ativa libera planos ilimitados.
 - Webhook Cakto preparado para atualizar assinatura.

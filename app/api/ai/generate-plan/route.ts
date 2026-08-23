@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { generatePlanWithAi } from "@/lib/openai-plan";
-import { getUserFromRequest, userHasActiveSubscription } from "@/lib/server-auth";
+import { claimPlanGeneration, getUserFromRequest, releaseTrialGeneration } from "@/lib/server-auth";
 import { createAdminSupabaseClient } from "@/lib/supabase";
 import type { AiUsage } from "@/lib/openai-plan";
 
@@ -62,14 +62,12 @@ const requestSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  let claimedTrialId: string | null = null;
+
   try {
     const user = await getUserFromRequest(request);
     if (!user) {
       return NextResponse.json({ error: "Entre na sua conta para criar um plano." }, { status: 401 });
-    }
-
-    if (!(await userHasActiveSubscription(user.id))) {
-      return NextResponse.json({ error: "É necessário ter uma assinatura ativa para criar planos com IA." }, { status: 403 });
     }
 
     const contentType = request.headers.get("content-type") || "";
@@ -88,6 +86,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Cole o conteúdo do edital ou anexe um arquivo para gerar o plano." }, { status: 400 });
     }
 
+    const generationAccess = await claimPlanGeneration(user.id, user.email);
+    if (!generationAccess.allowed) {
+      return NextResponse.json({ error: generationAccess.reason }, { status: 403 });
+    }
+    claimedTrialId = generationAccess.claimedTrialId;
+
     let usage: AiUsage | undefined;
     const plan = await generatePlanWithAi(parsed.data, (value) => { usage = value; });
     if (usage) {
@@ -100,8 +104,9 @@ export async function POST(request: Request) {
         output_tokens: usage.outputTokens
       });
     }
-    return NextResponse.json({ plan });
+    return NextResponse.json({ plan, access: generationAccess.access });
   } catch (error) {
+    if (claimedTrialId) await releaseTrialGeneration(claimedTrialId);
     const message = error instanceof Error ? error.message : "Erro inesperado.";
     return NextResponse.json({ error: message }, { status: 500 });
   }

@@ -123,6 +123,16 @@ const pricingPlans = [
 
 const faqs = [
   {
+    question: "Como funciona o teste grátis?",
+    answer:
+      "Você cria a conta sem cartão e pode gerar um plano completo com IA. Os sete dias começam somente nessa primeira geração. Durante o período, você pode usar o calendário, registrar sessões, editar o plano e explorar os recursos de acompanhamento."
+  },
+  {
+    question: "Serei cobrado automaticamente após os sete dias?",
+    answer:
+      "Não. O teste não pede cartão e não gera cobrança automática. Ao final, seu plano permanece salvo e você escolhe se quer assinar para continuar usando a plataforma."
+  },
+  {
     question: "Serve apenas para concurso?",
     answer:
       "Não. Concurso é o primeiro foco, mas o PlanoTracker também funciona para vestibular, OAB, residência, ENEM e qualquer prova com edital ou lista de conteúdos."
@@ -192,9 +202,9 @@ export default function HomePage() {
           <Link className="sales-login" href="/login">
             Entrar
           </Link>
-          <a className="sales-button small" href="#pricing">
-            Começar agora <ArrowRight size={17} />
-          </a>
+          <Link className="sales-button small" href="/login?mode=signup&trial=1">
+            Testar grátis <ArrowRight size={17} />
+          </Link>
         </div>
       </header>
 
@@ -204,7 +214,7 @@ export default function HomePage() {
 
         <div className="sales-hero-copy">
           <p className="sales-kicker">
-            <SignalBars /> Plano de estudo que cabe na vida real
+            <SignalBars /> 7 dias grátis • sem cartão
           </p>
           <h1>Seu plano de estudo, do edital até a prova.</h1>
           <p className="sales-lead">
@@ -212,22 +222,22 @@ export default function HomePage() {
             realmente cumpriu, mostra riscos e ajuda a reorganizar a rota quando a semana muda.
           </p>
           <div className="sales-actions">
-            <a className="sales-button" href="#pricing">
-              Montar meu plano <ArrowRight size={20} />
-            </a>
+            <Link className="sales-button" href="/login?mode=signup&trial=1">
+              Testar grátis por 7 dias <ArrowRight size={20} />
+            </Link>
             <Link className="sales-button secondary" href="/quiz">
               Fazer diagnóstico
             </Link>
           </div>
           <div className="sales-proof-row">
             <span>
-              <Clock3 size={16} /> Plano em minutos
+              <Clock3 size={16} /> 7 dias completos
             </span>
             <span>
-              <CheckCircle2 size={16} /> Rota adaptativa e editável
+              <CheckCircle2 size={16} /> 1 plano completo com IA
             </span>
             <span>
-              <ShieldCheck size={16} /> 7 dias de garantia
+              <ShieldCheck size={16} /> Sem cartão ou cobrança automática
             </span>
           </div>
 
@@ -385,6 +395,26 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section className="sales-section trial-offer-section" aria-label="Teste gratuito do PlanoTracker">
+        <div className="trial-offer-number">07</div>
+        <div className="trial-offer-copy">
+          <p className="sales-kicker"><Sparkles size={16} /> Teste antes de assinar</p>
+          <h2>Sete dias para colocar seu edital em movimento.</h2>
+          <p>
+            Crie uma conta sem cartão, gere um plano completo com IA e use a plataforma na sua rotina real. O prazo só
+            começa depois que o primeiro plano estiver sendo gerado.
+          </p>
+          <div className="trial-offer-points">
+            <span><CheckCircle2 size={18} /> Sem cobrança automática</span>
+            <span><CheckCircle2 size={18} /> Dados preservados ao final</span>
+            <span><CheckCircle2 size={18} /> Edite e acompanhe o plano</span>
+          </div>
+        </div>
+        <Link className="sales-button" href="/login?mode=signup&trial=1">
+          Começar teste grátis <ArrowRight size={19} />
+        </Link>
+      </section>
+
       <section className="sales-section evidence-section">
         <div className="sales-section-title">
           <p className="sales-kicker"><BookOpenCheck size={16} /> Sem promessa mágica</p>
@@ -418,9 +448,9 @@ export default function HomePage() {
 
       <section className="sales-section pricing-section" id="pricing">
         <div className="sales-section-title">
-          <p className="sales-kicker"><Sparkles size={16} /> Acesso completo</p>
+          <p className="sales-kicker"><Sparkles size={16} /> Continue depois do teste</p>
           <h2>Um único produto. Três formas de assinar.</h2>
-          <p>Todos os planos liberam a experiência completa, da leitura do edital ao acompanhamento adaptativo da preparação.</p>
+          <p>Teste por sete dias sem cartão. Se fizer sentido para sua rotina, escolha o período que preferir e continue com planos ilimitados.</p>
         </div>
         <div className="landing-pricing-grid">
           {pricingPlans.map((plan) => (
@@ -439,7 +469,7 @@ export default function HomePage() {
           ))}
         </div>
         <div className="trust-row">
-          <span><LockKeyhole size={18} /> Pagamento processado pela Cakto</span>
+          <span><LockKeyhole size={18} /> Teste sem cartão antes de assinar</span>
           <span><ShieldCheck size={18} /> 7 dias de garantia</span>
           <span><GraduationCap size={18} /> Planos de estudo ilimitados</span>
         </div>
@@ -448,9 +478,9 @@ export default function HomePage() {
       <section className="sales-section guarantee-section">
         <div className="guarantee-number">07</div>
         <div>
-          <p className="sales-kicker">Dias para testar</p>
-          <h2>Conheça o PlanoTracker com calma.</h2>
-          <p>Se ele não ajudar a organizar seus estudos, você pode pedir reembolso dentro do período de garantia.</p>
+          <p className="sales-kicker">Garantia após a assinatura</p>
+          <h2>Assine com segurança.</h2>
+          <p>Além do teste gratuito, sua compra conta com sete dias de garantia para solicitar reembolso.</p>
         </div>
         <ShieldCheck size={38} />
       </section>
@@ -474,8 +504,8 @@ export default function HomePage() {
         <SignalBars />
         <p className="sales-kicker">Sua próxima sessão começa antes de sentar para estudar</p>
         <h2>Abra o painel e saiba qual é o próximo passo.</h2>
-        <p>Transforme o edital em uma rota clara, registre o que aconteceu e ajuste os próximos dias sem começar do zero.</p>
-        <a className="sales-button" href="#pricing">Ver planos <ArrowRight size={20} /></a>
+        <p>Transforme o edital em uma rota clara e experimente na prática por sete dias, sem cartão.</p>
+        <Link className="sales-button" href="/login?mode=signup&trial=1">Testar grátis agora <ArrowRight size={20} /></Link>
       </section>
 
       <footer className="sales-footer">
@@ -486,6 +516,7 @@ export default function HomePage() {
         <span>© 2026 PlanoTracker</span>
         <nav>
           <Link href="/login">Entrar</Link>
+          <Link href="/login?mode=signup&trial=1">Teste grátis</Link>
           <a href="#pricing">Planos</a>
           <Link href="/termos">Termos</Link>
           <Link href="/privacidade">Privacidade</Link>

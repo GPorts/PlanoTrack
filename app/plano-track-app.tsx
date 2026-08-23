@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BellRing, Brain, CalendarDays, ChartSpline, Check, CirclePlay, ClipboardList, Download, LayoutDashboard, LibraryBig, ListChecks, LogOut, NotebookPen, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { createBrowserSupabaseClient } from "@/lib/supabase";
 import type { ErrorEntry, GeneratedPlan, ReviewState, ScheduleItem, SimulationRecord, StudySessionRecord, StudyWeekday, SubjectInput } from "@/lib/types";
+import type { AppAccess } from "@/lib/access";
 import { AdaptiveOverview, ErrorsView, MaterialsView, RecoveryModal, ReviewsView, SessionExecutionModal, SimulationsView } from "./adaptive-features";
 
 type View = "dashboard" | "create" | "calendar" | "goals" | "subjects" | "sessions" | "reviews" | "errors" | "simulations" | "materials";
@@ -85,7 +86,7 @@ const initialSubjects: Subject[] = [];
 const initialSchedule: ScheduleItem[] = [];
 const initialGoals: Goal[] = [];
 
-export function PlanoTrackerApp({ userId }: { userId: string }) {
+export function PlanoTrackerApp({ userId, access }: { userId: string; access?: AppAccess }) {
   const [view, setView] = useState<View>("dashboard");
   const [subjects, setSubjects] = useState(initialSubjects);
   const [goals, setGoals] = useState(initialGoals);
@@ -109,6 +110,7 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
   const [planOptions, setPlanOptions] = useState<PlanOption[]>([]);
   const [storageMessage, setStorageMessage] = useState("");
   const [isLoadingPlan, setIsLoadingPlan] = useState(true);
+  const [appAccess, setAppAccess] = useState<AppAccess>(access || { active: true, accessType: "paid", trial: null });
 
   useEffect(() => {
     let active = true;
@@ -323,8 +325,9 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
 
   }
 
-  function importGeneratedPlan(plan: GeneratedPlan) {
+  function importGeneratedPlan(plan: GeneratedPlan, updatedAccess?: AppAccess) {
     applyGeneratedPlan(plan);
+    if (updatedAccess) setAppAccess(updatedAccess);
     saveGeneratedPlan(plan).catch(() => {
       setStorageMessage("Plano criado, mas não foi possível salvar no Supabase.");
     });
@@ -890,6 +893,18 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
       </aside>
 
       <main className="planner-main">
+        {appAccess.accessType === "trial" && appAccess.trial ? (
+          <section className="trial-banner" aria-label="Status do teste gratuito">
+            <span className="trial-banner-icon"><Sparkles size={19} /></span>
+            <div>
+              <strong>{appAccess.trial.status === "pending" ? "Seu teste de 7 dias está pronto" : `${appAccess.trial.daysRemaining || 0} dias restantes no teste`}</strong>
+              <p>{appAccess.trial.status === "pending"
+                ? "O prazo só começa quando você gerar seu primeiro plano completo com IA."
+                : "Use o calendário, as sessões e os recursos adaptativos. Seu plano continuará salvo ao final."}</p>
+            </div>
+            <a href="/#pricing">Ver assinaturas</a>
+          </section>
+        ) : null}
         <header className="planner-topbar">
           <div>
             <p className="eyebrow">Planejamento inteligente</p>
@@ -936,7 +951,7 @@ export function PlanoTrackerApp({ userId }: { userId: string }) {
           />
         ) : null}
         {adaptiveMessage ? <div className="notice adaptive-migration-notice">{adaptiveMessage}</div> : null}
-        {view === "create" ? <CreatePlan onPlanGenerated={importGeneratedPlan} /> : null}
+        {view === "create" ? <CreatePlan access={appAccess} onPlanGenerated={importGeneratedPlan} /> : null}
         {view === "calendar" ? <Calendar schedule={schedule} subjects={subjects} onSaveDay={persistScheduleDay} onStartSession={setExecutionItem} /> : null}
         {view === "goals" ? <Goals goals={goals} setGoals={setGoals} openGoalModal={openGoalModal} onPersistGoal={persistGoal} onDeleteGoal={deleteGoalFromStorage} onStorageError={setStorageMessage} /> : null}
         {view === "subjects" ? <Subjects subjects={subjects} setSubjects={setSubjects} openSubjectModal={openSubjectModal} onDeleteSubject={deleteSubjectFromStorage} onStorageError={setStorageMessage} /> : null}
@@ -1089,7 +1104,7 @@ function Dashboard({
   );
 }
 
-function CreatePlan({ onPlanGenerated }: { onPlanGenerated: (plan: GeneratedPlan) => void }) {
+function CreatePlan({ access, onPlanGenerated }: { access: AppAccess; onPlanGenerated: (plan: GeneratedPlan, updatedAccess?: AppAccess) => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [hoursByDay, setHoursByDay] = useState<Record<StudyWeekday, string>>(
@@ -1149,8 +1164,15 @@ function CreatePlan({ onPlanGenerated }: { onPlanGenerated: (plan: GeneratedPlan
       return;
     }
 
-    onPlanGenerated(data.plan);
+    onPlanGenerated(data.plan, data.access);
   }
+
+  const trialGenerationAvailable = access.accessType !== "trial" || access.trial?.generationAvailable === true;
+  const accessLabel = access.accessType === "paid"
+    ? "Assinatura ativa = planos ilimitados"
+    : access.trial?.status === "pending"
+      ? "1 plano com IA incluído • 7 dias começam ao gerar"
+      : "Teste ativo • seu plano pode ser editado livremente";
 
   return (
     <section className="panel">
@@ -1159,7 +1181,7 @@ function CreatePlan({ onPlanGenerated }: { onPlanGenerated: (plan: GeneratedPlan
           <h2>Criar novo plano</h2>
           <p className="muted">Cole o edital, defina a rotina e gere um cronograma completo.</p>
         </div>
-        <div className="credit-box">Assinatura ativa = planos ilimitados</div>
+        <div className="credit-box">{accessLabel}</div>
       </div>
 
       <form className="create-form" onSubmit={submit}>
@@ -1224,9 +1246,16 @@ function CreatePlan({ onPlanGenerated }: { onPlanGenerated: (plan: GeneratedPlan
         <div className="notice">O PlanoTracker usa IA para ler o edital e monta o calendário completo até a véspera da prova.</div>
         {error ? <div className="notice">{error}</div> : null}
 
-        <button className="primary-button" type="submit" disabled={loading}>
-          {loading ? "Gerando..." : "Gerar plano"}
-        </button>
+        {trialGenerationAvailable ? (
+          <button className="primary-button" type="submit" disabled={loading}>
+            {loading ? "Gerando..." : access.accessType === "trial" ? "Gerar meu plano grátis" : "Gerar plano"}
+          </button>
+        ) : (
+          <div className="trial-generation-limit">
+            <div><strong>Seu plano gratuito já foi gerado</strong><span>Você pode continuar usando e editando esse plano durante o teste.</span></div>
+            <a className="primary-button" href="/#pricing">Criar planos ilimitados</a>
+          </div>
+        )}
       </form>
     </section>
   );

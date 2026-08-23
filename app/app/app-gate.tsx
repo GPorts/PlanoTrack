@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PlanoTrackerApp } from "../plano-track-app";
 import { createBrowserSupabaseClient } from "@/lib/supabase";
+import type { AppAccess } from "@/lib/access";
 
 type AccessState = "loading" | "allowed" | "signed-out" | "blocked" | "error";
 
@@ -13,6 +14,7 @@ export function AppGate() {
   const [state, setState] = useState<AccessState>("loading");
   const [email, setEmail] = useState("");
   const [userId, setUserId] = useState("");
+  const [accessInfo, setAccessInfo] = useState<AppAccess | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -45,9 +47,14 @@ export function AppGate() {
       const response = await fetch("/api/auth/access", {
         headers: { Authorization: `Bearer ${token}` }
       });
-      const access = await response.json();
+      const access = await response.json() as AppAccess;
 
       if (!active) return;
+      if (!response.ok) {
+        setState("error");
+        return;
+      }
+      setAccessInfo(access);
       setState(access.active ? "allowed" : "blocked");
     }
 
@@ -69,7 +76,7 @@ export function AppGate() {
     };
   }, [router]);
 
-  if (state === "allowed") return <PlanoTrackerApp userId={userId} />;
+  if (state === "allowed" && accessInfo) return <PlanoTrackerApp userId={userId} access={accessInfo} />;
 
   return (
     <main className="access-page">
@@ -89,25 +96,25 @@ export function AppGate() {
 
         {state === "signed-out" ? (
           <>
-            <p className="eyebrow">Acesso necessário</p>
-            <h1>Entre para acessar o PlanoTracker</h1>
-            <p className="muted">Use o mesmo e-mail informado na compra.</p>
-            <Link className="button" href="/login">
-              Entrar
+            <p className="eyebrow">Sua rota começa aqui</p>
+            <h1>Entre ou teste o PlanoTracker grátis</h1>
+            <p className="muted">Crie sua conta sem cartão e gere um plano completo com IA.</p>
+            <Link className="button" href="/login?mode=signup&trial=1">
+              Testar grátis por 7 dias
             </Link>
           </>
         ) : null}
 
         {state === "blocked" ? (
           <>
-            <p className="eyebrow">Assinatura não encontrada</p>
-            <h1>Seu acesso ainda não foi liberado</h1>
-            <p className="muted">
-              Não encontramos uma assinatura ativa para {email || "este e-mail"}. Se você acabou de comprar, confirme se
-              criou a conta com o mesmo e-mail usado no checkout.
+            <p className="eyebrow">{accessInfo?.trial?.status === "expired" ? "Teste concluído" : "Acesso não encontrado"}</p>
+            <h1>{accessInfo?.trial?.status === "expired" ? "Seus 7 dias gratuitos terminaram" : "Seu acesso ainda não foi liberado"}</h1>
+            <p className="muted">{accessInfo?.trial?.status === "expired"
+              ? "Seu plano e todo o seu histórico continuam salvos. Escolha uma assinatura para retomar de onde parou."
+              : `Não encontramos uma assinatura ativa para ${email || "este e-mail"}. Se você acabou de comprar, confirme se usou o mesmo e-mail do checkout.`}
             </p>
             <Link className="button" href="/#pricing">
-              Ver planos
+              Escolher um plano
             </Link>
           </>
         ) : null}
