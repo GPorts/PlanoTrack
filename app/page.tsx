@@ -15,6 +15,7 @@ import {
   ListChecks,
   ListRestart,
   LockKeyhole,
+  Mail,
   MessageCircleQuestion,
   Newspaper,
   Route,
@@ -23,6 +24,7 @@ import {
   Target,
   Upload
 } from "lucide-react";
+import { ContactForm } from "./contact-form";
 
 const checkoutLinks = {
   monthly: "https://pay.cakto.com.br/eyeihqu_955621",
@@ -508,6 +510,22 @@ export default function HomePage() {
         <Link className="sales-button" href="/login?mode=signup&trial=1">Testar grátis agora <ArrowRight size={20} /></Link>
       </section>
 
+      <section className="sales-section contact-section" id="contact">
+        <div className="contact-copy">
+          <p className="sales-kicker"><MessageCircleQuestion size={16} /> Fale com a gente</p>
+          <h2>Dúvida, sugestão ou feedback?</h2>
+          <p>
+            Sua experiência ajuda o PlanoTracker a ficar mais útil para quem está se preparando para uma prova. Envie
+            uma mensagem e responderemos pelo e-mail informado.
+          </p>
+          <a className="contact-email" href="mailto:contato.planotracker@gmail.com">
+            <Mail size={19} />
+            <span><small>Prefere escrever diretamente?</small><strong>contato.planotracker@gmail.com</strong></span>
+          </a>
+        </div>
+        <ContactForm />
+      </section>
+
       <footer className="sales-footer">
         <Link className="sales-brand footer-brand" href="/">
           <img src="/plano-tracker.png" alt="" aria-hidden="true" />
@@ -520,7 +538,7 @@ export default function HomePage() {
           <a href="#pricing">Planos</a>
           <Link href="/termos">Termos</Link>
           <Link href="/privacidade">Privacidade</Link>
-          <a href="mailto:contato.planotracker@gmail.com">Suporte</a>
+          <a href="#contact">Contato</a>
         </nav>
       </footer>
     </main>
