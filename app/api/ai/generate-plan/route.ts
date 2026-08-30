@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { generatePlanWithAi } from "@/lib/openai-plan";
+import { TargetSelectionRequiredError } from "@/lib/edital-plan";
 import { claimPlanGeneration, getUserFromRequest, releaseTrialGeneration } from "@/lib/server-auth";
 import { createAdminSupabaseClient } from "@/lib/supabase";
 import type { AiUsage } from "@/lib/openai-plan";
@@ -42,6 +43,8 @@ const requestSchema = z.object({
   mode: z.enum(["ai"]).optional(),
   routine: routineSchema,
   editalText: z.string().optional(),
+  additionalInstructions: z.string().optional(),
+  selectedTarget: z.string().optional(),
   editalFile: z
     .object({
       name: z.string().min(1),
@@ -55,6 +58,8 @@ const requestSchema = z.object({
         name: z.string(),
         questions: z.number().optional(),
         weight: z.number().optional(),
+        group: z.string().nullable().optional(),
+        priority: z.number().positive().optional(),
         topics: z.array(z.string())
       })
     )
@@ -106,6 +111,13 @@ export async function POST(request: Request) {
     }
     return NextResponse.json({ plan, access: generationAccess.access });
   } catch (error) {
+    if (error instanceof TargetSelectionRequiredError) {
+      if (claimedTrialId) await releaseTrialGeneration(claimedTrialId);
+      return NextResponse.json(
+        { error: error.message, code: "TARGET_SELECTION_REQUIRED", targets: error.targets },
+        { status: 409 }
+      );
+    }
     if (claimedTrialId) await releaseTrialGeneration(claimedTrialId);
     const message = error instanceof Error ? error.message : "Erro inesperado.";
     return NextResponse.json({ error: message }, { status: 500 });
@@ -134,6 +146,8 @@ async function formDataToBody(request: Request) {
       preferredBlocks: String(form.get("preferredBlocks") || "")
     },
     editalText: String(form.get("editalText") || ""),
+    additionalInstructions: String(form.get("additionalInstructions") || ""),
+    selectedTarget: String(form.get("selectedTarget") || "") || undefined,
     editalFile: file instanceof File && file.size > 0 ? await serializeFile(file) : undefined
   };
 }

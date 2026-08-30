@@ -4,7 +4,23 @@ export type SubjectInput = {
   name: string;
   questions?: number;
   weight?: number;
+  group?: string | null;
+  /** Peso interno calculado a partir da estrutura da prova. */
+  priority?: number;
   topics: string[];
+};
+
+export type ExamTarget = {
+  id: string;
+  label: string;
+};
+
+export type ExamBlock = {
+  name: string;
+  questions?: number | null;
+  pointsPerQuestion?: number | null;
+  totalPoints?: number | null;
+  subjectNames: string[];
 };
 
 export type StudyWeekday =
@@ -43,6 +59,8 @@ export type StudyPlanRequest = {
   mode?: StudyMode;
   routine: RoutineInput;
   editalText?: string;
+  additionalInstructions?: string;
+  selectedTarget?: string;
   editalFile?: {
     name: string;
     type: string;
@@ -189,6 +207,9 @@ export type GeneratedPlan = {
   subjects: SubjectInput[];
   schedule: ScheduleItem[];
   recommendations: string[];
+  target?: ExamTarget;
+  examBlocks?: ExamBlock[];
+  warnings?: string[];
   source?: PlanSource;
 };
 

@@ -27,6 +27,19 @@ export function generateRuleBasedPlan(input: StudyPlanRequest, interpretedPolicy
 
 export function inferRoutinePolicy(preferredBlocks = ""): StudyRoutinePolicy {
   const normalized = normalize(preferredBlocks);
+  if (!normalized) {
+    return {
+      blocks: [
+        { period: "Manha", kind: "teoria", instruction: "Estudar teoria" },
+        { period: "Tarde", kind: "questoes", instruction: "Resolver questões" },
+        { period: "Noite", kind: "revisao", instruction: "Revisar o conteúdo estudado" }
+      ],
+      maxSubjectsPerDay: 1,
+      avoidConsecutiveSubjectDays: true,
+      maxStudyDaysPerSubjectPerWeek: 0
+    };
+  }
+
   const flags = routineFlags(normalized);
   const periodDefinitions: Array<{ key: string; period: StudyBlock["period"] }> = [
     { key: "manha", period: "Manha" },
@@ -39,7 +52,7 @@ export function inferRoutinePolicy(preferredBlocks = ""): StudyRoutinePolicy {
     const instruction = instructionForPeriod(preferredBlocks, key);
     return {
       period,
-      kind: inferKind(instruction || preferredBlocks),
+      kind: inferKind(instruction || defaultInstruction(period)),
       instruction: instruction || defaultInstruction(period)
     };
   });
@@ -57,6 +70,7 @@ function enforceExplicitRoutineConstraints(interpretedPolicy: StudyRoutinePolicy
   if (!interpretedPolicy) return localPolicy;
 
   const normalized = normalize(preferredBlocks);
+  if (!normalized) return localPolicy;
   const flags = routineFlags(normalized);
   const hasExplicitPeriods = ["manha", "tarde", "noite"].some((period) => normalized.includes(period));
   const blocks = hasExplicitPeriods
@@ -106,8 +120,6 @@ function fallbackSubjects(editalText = ""): SubjectInput[] {
 
   return names.map((name) => ({
     name,
-    questions: 5,
-    weight: 10,
     topics: ["Tópico 1 extraído do edital", "Tópico 2 extraído do edital", "Revisão e questões"]
   }));
 }
@@ -223,16 +235,21 @@ function selectSubjectsForDay(
   return selected.length ? selected : [subjects[0]];
 }
 
-function subjectPriority(subject: SubjectInput) {
+export function subjectPriority(subject: SubjectInput) {
+  const calculatedPriority = positiveNumber(subject.priority);
+  if (calculatedPriority) return calculatedPriority;
+
   const points = positiveNumber(subject.weight) || positiveNumber(subject.questions) || 1;
-  const questionFactor = 1 + Math.min(positiveNumber(subject.questions), 100) / 200;
   const contentFactor = 1 + Math.log2(Math.max(1, subject.topics.length) + 1) / 20;
-  return points * questionFactor * contentFactor;
+  return points * contentFactor;
 }
 
 function sanitizePolicy(policy: StudyRoutinePolicy): StudyRoutinePolicy {
-  const blocks = policy.blocks.length
-    ? policy.blocks.slice(0, 6).map((block) => ({
+  const uniqueBlocks = policy.blocks.filter(
+    (block, index, blocks) => blocks.findIndex((candidate) => candidate.period === block.period) === index
+  );
+  const blocks = uniqueBlocks.length
+    ? uniqueBlocks.slice(0, 3).map((block) => ({
         period: block.period,
         kind: block.kind,
         instruction: block.instruction.trim() || defaultInstruction(block.period)
@@ -305,7 +322,7 @@ function normalize(value: string) {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
-function positiveNumber(value?: number) {
+function positiveNumber(value?: number | null) {
   return Number.isFinite(value) && Number(value) > 0 ? Number(value) : 0;
 }
 

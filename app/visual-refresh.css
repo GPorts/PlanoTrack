@@ -2551,6 +2551,21 @@ textarea:focus {
 .create-form textarea { min-height: 180px; }
 .create-form .routine-input { min-height: 116px; }
 
+.create-form .form-hint {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.target-selection {
+  border: 1px solid #b9c9be;
+  border-left: 4px solid var(--green);
+  border-radius: 7px;
+  background: #f2f8f4;
+  padding: 16px;
+}
+
 .form-row {
   gap: 16px;
 }

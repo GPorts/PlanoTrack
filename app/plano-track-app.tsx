@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { BellRing, Brain, CalendarDays, ChartSpline, Check, CirclePlay, ClipboardList, Download, LayoutDashboard, LibraryBig, ListChecks, LogOut, NotebookPen, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { createBrowserSupabaseClient } from "@/lib/supabase";
-import type { ErrorEntry, GeneratedPlan, ReviewState, ScheduleItem, SimulationRecord, StudySessionRecord, StudyWeekday, SubjectInput } from "@/lib/types";
+import type { ErrorEntry, ExamTarget, GeneratedPlan, ReviewState, ScheduleItem, SimulationRecord, StudySessionRecord, StudyWeekday, SubjectInput } from "@/lib/types";
 import type { AppAccess } from "@/lib/access";
 import { AdaptiveOverview, ErrorsView, MaterialsView, RecoveryModal, ReviewsView, SessionExecutionModal, SimulationsView } from "./adaptive-features";
 
@@ -1107,6 +1107,8 @@ function Dashboard({
 function CreatePlan({ access, onPlanGenerated }: { access: AppAccess; onPlanGenerated: (plan: GeneratedPlan, updatedAccess?: AppAccess) => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [detectedTargets, setDetectedTargets] = useState<ExamTarget[]>([]);
+  const [selectedTarget, setSelectedTarget] = useState("");
   const [hoursByDay, setHoursByDay] = useState<Record<StudyWeekday, string>>(
     () => Object.fromEntries(studyWeekdays.map((day) => [day, ""])) as Record<StudyWeekday, string>
   );
@@ -1127,6 +1129,7 @@ function CreatePlan({ access, onPlanGenerated }: { access: AppAccess; onPlanGene
 
     form.set("studyDays", days.join(","));
     form.set("hoursByDay", JSON.stringify(availability));
+    if (selectedTarget) form.set("selectedTarget", selectedTarget);
 
     if (!days.length) {
       setLoading(false);
@@ -1160,6 +1163,10 @@ function CreatePlan({ access, onPlanGenerated }: { access: AppAccess; onPlanGene
     setLoading(false);
 
     if (!response.ok) {
+      if (data.code === "TARGET_SELECTION_REQUIRED" && Array.isArray(data.targets)) {
+        setDetectedTargets(data.targets);
+        setSelectedTarget("");
+      }
       setError(data.error || "Não foi possível criar o plano.");
       return;
     }
@@ -1197,7 +1204,12 @@ function CreatePlan({ access, onPlanGenerated }: { access: AppAccess; onPlanGene
         </div>
         <label>
           Edital em arquivo
-          <input name="editalFile" type="file" accept=".pdf,.txt,.md,application/pdf,text/plain,text/markdown" />
+          <input
+            name="editalFile"
+            type="file"
+            accept=".pdf,.txt,.md,application/pdf,text/plain,text/markdown"
+            onChange={() => { setDetectedTargets([]); setSelectedTarget(""); }}
+          />
         </label>
 
         <fieldset className="availability-picker">
@@ -1237,11 +1249,41 @@ function CreatePlan({ access, onPlanGenerated }: { access: AppAccess; onPlanGene
             rows={4}
             placeholder="Ex.: Estudar uma matéria por dia e intercalar ao longo da semana. Manhã para lei seca; tarde para doutrina; noite para questões da matéria do dia."
           />
+          <span className="form-hint">Se deixar em branco, o plano alternará as disciplinas e distribuirá teoria, questões e revisão de forma equilibrada.</span>
         </label>
         <label>
-          Edital
-          <textarea name="editalText" placeholder="Cole aqui o conteúdo programático do edital ou anexe o PDF acima..." />
+          Conteúdo do edital
+          <textarea
+            name="editalText"
+            placeholder="Cole aqui o conteúdo programático ou deixe em branco se anexou o edital completo acima."
+            onChange={() => { setDetectedTargets([]); setSelectedTarget(""); }}
+          />
+          <span className="form-hint">Este campo é para o texto original do edital.</span>
         </label>
+        <label>
+          Orientações adicionais para o plano (opcional)
+          <textarea
+            className="routine-input"
+            name="additionalInstructions"
+            rows={4}
+            placeholder="Ex.: Considere apenas o cargo 19 - Técnico Judiciário. Dê mais atenção às matérias específicas e alterne as disciplinas ao longo da semana."
+            onChange={() => { setDetectedTargets([]); setSelectedTarget(""); }}
+          />
+          <span className="form-hint">Você pode informar cargo, área, especialidade, prioridades ou qualquer regra que queira aplicar à divisão do cronograma.</span>
+        </label>
+
+        {detectedTargets.length ? (
+          <div className="target-selection">
+            <label>
+              Cargo, área ou especialidade
+              <select name="selectedTarget" value={selectedTarget} onChange={(event) => setSelectedTarget(event.target.value)} required>
+                <option value="">Selecione uma opção do edital</option>
+                {detectedTargets.map((target) => <option key={target.id} value={target.label}>{target.label}</option>)}
+              </select>
+              <span className="form-hint">O edital possui mais de uma opção. A escolha evita misturar matérias de cargos diferentes.</span>
+            </label>
+          </div>
+        ) : null}
 
         <div className="notice">O PlanoTracker usa IA para ler o edital e monta o calendário completo até a véspera da prova.</div>
         {error ? <div className="notice">{error}</div> : null}
