@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CheckCircle2, Send } from "lucide-react";
+import { trackMetaEvent } from "@/lib/meta-pixel";
 
 type FormState = "idle" | "sending" | "success" | "error";
 
@@ -37,6 +38,7 @@ export function ContactForm() {
       }
 
       form.reset();
+      trackMetaEvent("Lead", { content_name: "Formulário de contato" });
       setState("success");
       setMessage("Mensagem enviada. Obrigado por falar com a gente!");
     } catch {

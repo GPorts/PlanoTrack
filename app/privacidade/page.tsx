@@ -8,7 +8,7 @@ export default function PrivacyPage() {
           <img src="/plano-tracker.png" alt="" aria-hidden="true" />
           <strong>PlanoTracker</strong>
         </Link>
-        <p className="eyebrow">Última atualização: 26 de agosto de 2026</p>
+        <p className="eyebrow">Última atualização: 1º de setembro de 2026</p>
         <h1>Política de Privacidade</h1>
         <p>Esta política explica como os dados são tratados quando você compra, cria uma conta e usa o PlanoTracker.</p>
 
@@ -18,8 +18,12 @@ export default function PrivacyPage() {
         <h2>Para que usamos</h2>
         <p>Usamos os dados para autenticar a conta, controlar o período de teste, validar a assinatura, gerar e salvar planos de estudo, manter o histórico, responder mensagens e prestar suporte, prevenir abuso e cumprir obrigações legais.</p>
 
+        <h2>Cookies e medição de anúncios</h2>
+        <p>Os recursos necessários do site funcionam independentemente da sua escolha. Com sua autorização, usamos o Pixel da Meta para medir visitas e ações como início do quiz, cadastro, início do teste e saída para o checkout. Esses eventos ajudam a avaliar campanhas e não incluem o conteúdo do edital, respostas do quiz, anotações ou materiais de estudo.</p>
+        <p>Você pode aceitar ou recusar essa medição no aviso exibido no site e alterar sua decisão posteriormente em <a href="/?cookies=configurar">preferências de cookies</a>.</p>
+
         <h2>Fornecedores</h2>
-        <p>O serviço usa Cakto para pagamentos, Supabase para autenticação e banco de dados, Vercel para hospedagem, Resend para envio de e-mails e OpenAI para interpretar o conteúdo enviado e gerar o plano. Ao usar a geração por IA, o conteúdo do edital e as preferências informadas são enviados à API da OpenAI.</p>
+        <p>O serviço usa Cakto para pagamentos, Supabase para autenticação e banco de dados, Vercel para hospedagem, Resend para envio de e-mails, Meta para medição consentida de anúncios e OpenAI para interpretar o conteúdo enviado e gerar o plano. Ao usar a geração por IA, o conteúdo do edital e as preferências informadas são enviados à API da OpenAI.</p>
 
         <h2>Armazenamento e segurança</h2>
         <p>Adotamos controles de acesso por usuário e medidas técnicas compatíveis com o serviço. Mantemos os dados enquanto a conta estiver ativa ou pelo período necessário para prestar o serviço, resolver disputas e cumprir obrigações legais.</p>

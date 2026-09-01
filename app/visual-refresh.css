@@ -4413,6 +4413,106 @@ textarea:focus {
   .quiz-option { padding-right: 10px; }
 }
 
+.cookie-consent {
+  position: fixed;
+  z-index: 3000;
+  right: 22px;
+  bottom: 22px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  width: min(920px, calc(100vw - 44px));
+  border: 1px solid #9fb4b0;
+  border-top: 5px solid var(--brand);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 18px 20px;
+  color: var(--navy);
+  box-shadow: 8px 8px 0 var(--navy), 0 18px 50px rgba(6, 28, 54, 0.2);
+}
+
+.cookie-consent-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 6px;
+  background: var(--lime);
+}
+
+.cookie-consent-copy strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.93rem;
+}
+
+.cookie-consent-copy p {
+  margin: 0;
+  color: #536664;
+  font-size: 0.79rem;
+  line-height: 1.55;
+}
+
+.cookie-consent-copy a {
+  color: var(--brand-dark);
+  font-weight: 900;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cookie-consent-actions {
+  display: flex;
+  gap: 9px;
+}
+
+.cookie-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 43px;
+  border: 1px solid var(--brand);
+  border-radius: 6px;
+  background: var(--brand);
+  color: #ffffff;
+  padding: 0 16px;
+  font-size: 0.77rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.cookie-button.secondary {
+  border-color: #aab8b6;
+  background: #ffffff;
+  color: var(--navy);
+}
+
+@media (max-width: 760px) {
+  .cookie-consent {
+    right: 12px;
+    bottom: 12px;
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 12px;
+    width: calc(100vw - 24px);
+    padding: 16px;
+    box-shadow: 6px 6px 0 var(--navy);
+  }
+
+  .cookie-consent-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .cookie-consent-actions {
+    grid-column: 1 / -1;
+  }
+
+  .cookie-button {
+    flex: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after {

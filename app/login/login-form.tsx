@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabaseClient } from "@/lib/supabase";
+import { trackMetaEvent } from "@/lib/meta-pixel";
 
 type Mode = "signin" | "signup";
 
@@ -55,6 +56,10 @@ export function LoginForm() {
       setLoading(false);
       setMessage(result.error.message);
       return;
+    }
+
+    if (mode === "signup") {
+      trackMetaEvent("CompleteRegistration", { content_name: "Conta de teste gratuito", status: true });
     }
 
     const session = result.data.session || (await supabase.auth.getSession()).data.session;

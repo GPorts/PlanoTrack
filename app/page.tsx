@@ -101,7 +101,9 @@ const pricingPlans = [
     suffix: "/mês",
     description: "Cobrança mensal recorrente",
     href: checkoutLinks.monthly,
-    cta: "Assinar mensal"
+    cta: "Assinar mensal",
+    code: "monthly",
+    value: 29.9
   },
   {
     name: "Anual",
@@ -110,6 +112,8 @@ const pricingPlans = [
     description: "Equivale a R$ 20,82 por mês",
     href: checkoutLinks.annual,
     cta: "Assinar anual",
+    code: "annual",
+    value: 249.9,
     featured: true,
     badge: "30% de economia"
   },
@@ -119,7 +123,9 @@ const pricingPlans = [
     suffix: "/trimestre",
     description: "Equivale a R$ 26,63 por mês",
     href: checkoutLinks.quarterly,
-    cta: "Assinar trimestral"
+    cta: "Assinar trimestral",
+    code: "quarterly",
+    value: 79.9
   }
 ];
 
@@ -464,7 +470,15 @@ export default function HomePage() {
               <ul>
                 {planFeatures.map((feature) => <li key={feature}><CheckCircle2 size={19} /> {feature}</li>)}
               </ul>
-              <a className={`sales-button ${plan.featured ? "" : "secondary dark"}`} href={plan.href}>
+              <a
+                className={`sales-button ${plan.featured ? "" : "secondary dark"}`}
+                href={plan.href}
+                data-meta-event="InitiateCheckout"
+                data-meta-content-name={`Plano ${plan.name}`}
+                data-meta-plan={plan.code}
+                data-meta-currency="BRL"
+                data-meta-value={plan.value}
+              >
                 {plan.cta} <ArrowRight size={19} />
               </a>
             </article>

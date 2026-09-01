@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { trackMetaCustomEvent } from "@/lib/meta-pixel";
 import {
   ArrowLeft,
   ArrowRight,
@@ -190,6 +191,7 @@ export default function QuizPage() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [salesHref, setSalesHref] = useState("/");
+  const quizCompletedTracked = useRef(false);
 
   const question = questions[currentIndex];
   const result = useMemo(() => buildResult(answers), [answers]);
@@ -216,6 +218,12 @@ export default function QuizPage() {
     ];
 
     return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [view]);
+
+  useEffect(() => {
+    if (view !== "result" || quizCompletedTracked.current) return;
+    quizCompletedTracked.current = true;
+    trackMetaCustomEvent("QuizCompleted", { quiz_name: "Diagnóstico de estudos" });
   }, [view]);
 
   function selectAnswer(value: string) {
@@ -285,7 +293,10 @@ export default function QuizPage() {
         {view !== "intro" && view !== "result" ? <span>{Math.round(progress)}% concluído</span> : <span>Diagnóstico de estudos</span>}
       </header>
 
-      {view === "intro" ? <QuizIntro onStart={() => setView("questions")} /> : null}
+      {view === "intro" ? <QuizIntro onStart={() => {
+        trackMetaCustomEvent("QuizStarted", { quiz_name: "Diagnóstico de estudos" });
+        setView("questions");
+      }} /> : null}
       {view === "result" ? <QuizResult answers={answers} result={result} salesHref={salesHref} /> : null}
 
       {view === "questions" ? (

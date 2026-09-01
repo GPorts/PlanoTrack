@@ -5,6 +5,7 @@ import { BellRing, Brain, CalendarDays, ChartSpline, Check, CirclePlay, Clipboar
 import { createBrowserSupabaseClient } from "@/lib/supabase";
 import type { ErrorEntry, ExamTarget, GeneratedPlan, ReviewState, ScheduleItem, SimulationRecord, StudySessionRecord, StudyWeekday, SubjectInput } from "@/lib/types";
 import type { AppAccess } from "@/lib/access";
+import { trackMetaEvent } from "@/lib/meta-pixel";
 import { AdaptiveOverview, ErrorsView, MaterialsView, RecoveryModal, ReviewsView, SessionExecutionModal, SimulationsView } from "./adaptive-features";
 
 type View = "dashboard" | "create" | "calendar" | "goals" | "subjects" | "sessions" | "reviews" | "errors" | "simulations" | "materials";
@@ -1153,6 +1154,7 @@ function CreatePlan({ access, onPlanGenerated }: { access: AppAccess; onPlanGene
       return;
     }
 
+    const isStartingTrial = access.accessType === "trial" && access.trial?.status === "pending";
     const response = await fetch("/api/ai/generate-plan", {
       method: "POST",
       headers: { Authorization: `Bearer ${session.access_token}` },
@@ -1171,6 +1173,9 @@ function CreatePlan({ access, onPlanGenerated }: { access: AppAccess; onPlanGene
       return;
     }
 
+    if (isStartingTrial) {
+      trackMetaEvent("StartTrial", { content_name: "Teste gratuito de 7 dias", currency: "BRL" });
+    }
     onPlanGenerated(data.plan, data.access);
   }
 
