@@ -5,6 +5,7 @@ import {
   META_PIXEL_ID,
   initializeMetaPixel,
   revokeMetaPixelConsent,
+  trackMetaCustomEvent,
   trackMetaEvent
 } from "../lib/meta-pixel.ts";
 
@@ -52,6 +53,9 @@ test("carrega o Pixel e enfileira eventos somente após aceitar", () => {
   assert.equal(scripts[0].src, "https://connect.facebook.net/en_US/fbevents.js");
   assert.ok(window.fbq.queue.some((entry) => entry[0] === "init" && entry[1] === META_PIXEL_ID));
   assert.ok(window.fbq.queue.some((entry) => entry[0] === "track" && entry[1] === "PageView"));
+
+  trackMetaCustomEvent("CheckoutClick", { content_ids: ["annual"] });
+  assert.ok(window.fbq.queue.some((entry) => entry[0] === "trackCustom" && entry[1] === "CheckoutClick"));
   clearBrowserMock();
 });
 

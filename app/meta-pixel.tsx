@@ -8,6 +8,7 @@ import {
   MARKETING_CONSENT_KEY,
   initializeMetaPixel,
   revokeMetaPixelConsent,
+  trackMetaCustomEvent,
   trackMetaEvent
 } from "@/lib/meta-pixel";
 
@@ -39,8 +40,9 @@ export function MetaPixel() {
   useEffect(() => {
     function trackMarkedElement(event: MouseEvent) {
       if (!(event.target instanceof Element)) return;
-      const element = event.target.closest<HTMLElement>("[data-meta-event]");
-      if (!element?.dataset.metaEvent) return;
+      const element = event.target.closest<HTMLElement>("[data-meta-event], [data-meta-custom-event]");
+      const eventName = element?.dataset.metaEvent || element?.dataset.metaCustomEvent;
+      if (!element || !eventName) return;
 
       const parameters: Record<string, unknown> = {};
       if (element.dataset.metaContentName) parameters.content_name = element.dataset.metaContentName;
@@ -48,7 +50,8 @@ export function MetaPixel() {
       if (element.dataset.metaCurrency) parameters.currency = element.dataset.metaCurrency;
       if (element.dataset.metaValue) parameters.value = Number(element.dataset.metaValue);
 
-      trackMetaEvent(element.dataset.metaEvent, parameters);
+      if (element.dataset.metaCustomEvent) trackMetaCustomEvent(eventName, parameters);
+      else trackMetaEvent(eventName, parameters);
     }
 
     document.addEventListener("click", trackMarkedElement);

@@ -473,7 +473,7 @@ export default function HomePage() {
               <a
                 className={`sales-button ${plan.featured ? "" : "secondary dark"}`}
                 href={plan.href}
-                data-meta-event="InitiateCheckout"
+                data-meta-custom-event="CheckoutClick"
                 data-meta-content-name={`Plano ${plan.name}`}
                 data-meta-plan={plan.code}
                 data-meta-currency="BRL"
